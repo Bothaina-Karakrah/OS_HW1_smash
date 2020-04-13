@@ -168,3 +168,105 @@ void SmallShell::executeCommand(const char *cmd_line) {
   // cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
+
+
+//////jobs//////
+void JobsList::addJob(Command *cmd, bool isStopped) {
+        if (!cmd) return;
+        removeFinishedJobs();
+
+        if (isStopped){
+            cmd->set_state(Stopped);
+        }
+        else{
+            cmd->set_state(Background);
+        }
+
+        int new_id = ((this->jobs).back().get_job_id()) + 1;
+        JobEntry new_job = JobEntry(cmd,new_id);
+        this->jobs.push_back(new_job);
+}
+
+void JobsList::printJobsList() {
+    removeFinishedJobs();
+
+    time_t time2;
+    if(time(&time2) == (time_t)-1){
+        perror("smash error: time failed");
+    }
+
+    for(size_t i = 0; i < (this->jobs).size(); ++i){
+        double elapsed_time = difftime(time2, jobs[i].get_time());
+
+        if (jobs[i].get_cmd().get_state() == Stopped){
+
+            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd().get_cmd_line()
+            << " : " << jobs[i].get_cmd().get_pid() << " " << elapsed_time << "secs (stopped)" << endl;
+        }
+        else{
+            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd().get_cmd_line()
+                 << " : " << jobs[i].get_cmd().get_pid() << " " << elapsed_time << " secs" << endl;
+        }
+    }
+}
+
+JobEntry* JobsList::getJobById(int jobId) {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        if (jobs[i].get_job_id() == jobId){
+            return &(jobs[i]);
+        }
+    }
+}
+
+void JobsList::removeJobById(int jobId) {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        if (jobs[i].get_job_id() == jobId){
+            jobs.erase(jobs.begin() + i);
+            return;
+        }
+    }
+}
+
+JobEntry* JobsList::getLastJob(int *lastJobId) {
+    removeFinishedJobs();
+
+    *lastJobId = jobs.back().get_job_id();
+    return &(jobs.back());
+}
+
+JobEntry* JobsList::getLastStoppedJob(int *jobId) {
+    removeFinishedJobs();
+
+    for (size_t i = (this->jobs).size()-1; i >= 0: --i) {
+        if (jobs[i].get_cmd().get_state() == Stopped){
+            *jobId = jobs[i].get_job_id();
+            return  &(jobs[i]);
+        }
+    }
+}
+
+bool JobsList::is_job_exist(int id) {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        if (jobs[i].get_job_id() == id){
+            return true
+        }
+    }
+    return false;
+}
+
+void JobsList::killAllJobs() {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        int ret = kill(job[i].get_cmd().get_pid(), SIGKILL);
+        if (ret != 0) {
+            perror("smash error: kill failed");sss
+        }
+    }
+}
