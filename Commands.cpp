@@ -82,15 +82,65 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+// TODO: Add your implementation for classes in Commands.h
+
+///command///
+Command::Command(const char* cmd_line): pid(-1) {
+
+    if (_isBackgroundComamnd(cmd_line))
+        state = Background;
+     else
+        state = Foregroung;
+
+    this->cmd_line = (char *) malloc(sizeof(char) * strlen(cmd_line) + 1);
+    strcpy(this->cmd_line, cmd_line);
+}
+
+Command::~Command() {
+    free(cmd_line);
+}
+
+char * Command::get_cmd_line() {
+    return this->cmd_line;
+}
+
+void Command::set_pid(pid_t new_pid) {
+    this->pid = new_pid;
+    return;
+}
+
+pid_t Command::get_pid() {
+    return this->pid;
+}
+
+void Command::set_state(State new_state) {
+    this->state = new_state;
+    return;
+}
+
+State Command::get_state() {
+    return this->state;
+}
+
+///showpid///
+void ShowPidCommand::execute() {
+    cout << "smash pid is " << getpid() << endl;
+}
+
+///pwd///
+void GetCurrDirCommand::execute() {
+    char cwd[1024];
+    if(getcwd(cwd, sizeof(cwd)) == NULL){
+        perror("smash error: getcwd failed");
+    }
+    cout << cwd <<endl;
+    return;
+}
 
 SmallShell::SmallShell() {
 // TODO: add your implementation
 }
 
-SmallShell::~SmallShell() {
-// TODO: add your implementation
-}
 
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
