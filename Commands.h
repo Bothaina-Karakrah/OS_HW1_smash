@@ -91,29 +91,6 @@ class ShowPidCommand : public BuiltInCommand {
   void execute() override;
 };
 
-
-/////why is this?///
-class CommandsHistory {
- protected:
-  class CommandHistoryEntry {
-	  // TODO: Add your data members
-  };
- // TODO: Add your data members
- public:
-  CommandsHistory();
-  ~CommandsHistory() {}
-  void addRecord(const char* cmd_line);
-  void printHistory();
-};
-
-class HistoryCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  HistoryCommand(const char* cmd_line, CommandsHistory* history);
-  virtual ~HistoryCommand() {}
-  void execute() override;
-};
-
 ///jobs///
 class JobsList {
  public:
@@ -173,8 +150,17 @@ class JobsList {
         jobs.clear();
     }
 
+    JobEntry* get_curr_fg(){
+        return &(this->curr_fg);
+    }
+
+    void set_curr_fg(Command* cmd,int job_id){
+        this->curr_fg.set_cmd(cmd,job_id);
+    }
+
 private:
     std::vector<JobEntry> jobs;
+    JobEntry curr_fg;
 };
 
 class JobsCommand : public BuiltInCommand {
@@ -243,6 +229,7 @@ class SmallShell {
   // TODO: Add your data members
     JobsList jobslist;
     char * plast;
+    pid_t curr_pid;
   SmallShell();
 
  public:
@@ -262,6 +249,18 @@ class SmallShell {
     };
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
+  JobsList* get_job_list(){
+      return &this->jobslist;
+  }
+
+  void set_curr_pid(pid_t new_pid){
+      this->curr_pid = new_pid;
+      return;
+  }
+
+  pid_t get_curr_pid(){
+      return this->curr_pid;
+  }
 
 };
 
