@@ -266,7 +266,7 @@ void JobsList::killAllJobs() {
     for (size_t i = 0; i < (this->jobs).size(); ++i) {
         int ret = kill(job[i].get_cmd().get_pid(), SIGKILL);
         if (ret != 0) {
-            perror("smash error: kill failed");sss
+            perror("smash error: kill failed");
         }
     }
 }
