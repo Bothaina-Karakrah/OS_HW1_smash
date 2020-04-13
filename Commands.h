@@ -151,6 +151,8 @@ class BackgroundCommand : public BuiltInCommand {
   void execute() override;
 };
 
+
+// TODO: should it really inhirit from BuiltInCommand ?
 class CopyCommand : public BuiltInCommand {
  public:
   CopyCommand(const char* cmd_line);
@@ -158,6 +160,8 @@ class CopyCommand : public BuiltInCommand {
   void execute() override;
 };
 
+// TODO: add more classes if needed 
+// maybe chprompt , timeout ?
 
 class SmallShell {
  private:
