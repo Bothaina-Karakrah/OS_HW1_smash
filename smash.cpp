@@ -1,26 +1,42 @@
 #include <iostream>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <signal.h>
-#include "Commands.h"
 #include "signals.h"
+#include "Commands.h"
 
-int main(int argc, char* argv[]) {
-    if(signal(SIGTSTP , ctrlZHandler)==SIG_ERR) {
-        perror("smash error: failed to set ctrl-Z handler");
-    }
-    if(signal(SIGINT , ctrlCHandler)==SIG_ERR) {
-        perror("smash error: failed to set ctrl-C handler");
-    }
+using namespace std;
 
-    //TODO: setup sig alarm handler
+void ctrlZHandler(int sig_num) {
+    cout << "smash: got ctrl-Z" << endl;
+    SmallShell &smallShell = smallShell.getInstance();
+    int temp = smallShell.get_curr_pid();
 
-    SmallShell& smash = SmallShell::getInstance();
-    while(true) {
-        std::cout << "smash> "; // TODO: change this (why?)
-        std::string cmd_line;
-        std::getline(std::cin, cmd_line);
-        smash.executeCommand(cmd_line.c_str());
+    if (temp != -1) {
+        smallShell.get_job_list()->addJob(smallShell.get_job_list()->get_curr_fg()->get_cmd() ,true);
+        smallShell.get_job_list()->get_curr_fg()->get_cmd()->set_state(Stopped);
+        if (kill(smallShell.get_curr_pid(), SIGSTOP) != 0) {
+            perror("smash error: kill failed");
+        }
+        smallShell.set_curr_pid(-1) ;
+        smallShell.get_job_list()->set_curr_fg(nullptr,0);
+        cout << "smash: process " << temp << " was stopped" << endl;
     }
-    return 0;
 }
+
+void ctrlCHandler(int sig_num) {
+    cout << "smash: got ctrl-C" << endl;
+    SmallShell &smallShell = smallShell.getInstance();
+    int temp = smallShell.get_curr_pid();
+    if (temp!= -1) {
+        if (kill(smallShell.get_curr_pid(), SIGKILL) != 0) {
+            perror("smash error: kill failed");
+        }
+        smallShell.set_curr_pid(-1) ;
+        smallShell.get_job_list()->set_curr_fg(nullptr,0);
+        cout << "smash: process " << temp << " was killed" << endl;
+    }
+}
+
+void alarmHandler(int sig_num) {
+  // TODO: Add your implementation
+}
+
