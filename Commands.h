@@ -92,16 +92,6 @@ class ShowPidCommand : public BuiltInCommand {
 };
 
 
-class JobsList;
-
-///kill///
-class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-  QuitCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~QuitCommand() {}
-  void execute() override;
-};
-
 /////why is this?///
 class CommandsHistory {
  protected:
@@ -166,7 +156,7 @@ class JobsList {
  // TODO: Add your data members
  public:
   JobsList();
-  ~JobsList();
+  ~JobsList(){};
   void addJob(Command* cmd, bool isStopped = false);
   void printJobsList();
   void killAllJobs();
@@ -177,6 +167,11 @@ class JobsList {
   JobEntry *getLastStoppedJob(int *jobId);
   // TODO: Add extra methods or modify exisitng ones as needed
   bool is_job_exist(int id);
+  void print_before_quit();
+
+    void delete_jobs_vector() {
+        jobs.clear();
+    }
 
 private:
     std::vector<JobEntry> jobs;
@@ -218,6 +213,16 @@ class BackgroundCommand : public BuiltInCommand {
   void execute() override;
 };
 
+///kill///
+class QuitCommand : public BuiltInCommand {
+    JobsList* jobs;
+// TODO: Add your data members
+
+public:
+    QuitCommand(const char* cmd_line, JobsList* jobs): BuiltInCommand(cmd_line), jobs(jobs){};
+    virtual ~QuitCommand() {}
+    void execute() override;
+};
 
 // TODO: should it really inhirit from BuiltInCommand ?
 ///cp///
@@ -257,7 +262,7 @@ class SmallShell {
     };
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
-  
+
 };
 
 #endif //SMASH_COMMAND_H_
