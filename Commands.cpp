@@ -5,9 +5,11 @@
 #include <sstream>
 #include <sys/wait.h>
 #include <iomanip>
+#include <fcntl.h>
 #include "Commands.h"
 
 using namespace std;
+
 const std::string WHITESPACE = " \n\r\t\f\v";
 
 #if 0
@@ -270,4 +272,127 @@ void JobsList::killAllJobs() {
             perror("smash error: kill failed");
         }
     }
+}
+
+void JobsList::print_before_quit() {
+    int size = jobs.size();
+    cout << "smash: sending SIGKILL signal to " << size << " jobs:" << endl;
+    for (int i = 0; i < size; i++) {
+        pid_t pid = jobs[i].get_cmd()->get_pid();
+        const char* cmd_line = jobs[i].get_cmd()->get_cmd_line();
+        cout << pid << ": " << cmd_line << endl;
+    }
+}
+
+void JobsList::removeFinishedJobs() {
+    std::vector<JobEntry>:: iterator x = jobs.begin();
+    while(x!=jobs.end()) {
+        for (;x!=jobs.end();x++){
+            if (waitpid((*x).get_cmd()->get_pid(), nullptr, WNOHANG)) {
+                std::vector<JobEntry>:: iterator temp = x++;
+                x--;
+                jobs.erase(x);
+                x = temp;
+                break;
+            }
+        }
+    }
+}
+
+
+///quit
+void QuitCommand::execute() {
+    jobs->removeFinishedJobs();
+    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+    if (command_length >= 2) {
+        jobs->print_before_quit();
+        jobs->killAllJobs();
+        jobs->delete_jobs_vector();
+
+    } else {
+        jobs->delete_jobs_vector();
+    }
+
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
+    exit(0);
+}
+
+
+///bg
+void BackgroundCommand::execute() {
+    jobs->removeFinishedJobs();
+    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+
+    if (command_length > 2) {
+        cerr << "smash error: bg: invalid arguments" << endl;
+        return;
+    }
+}
+
+
+///cp
+void CopyCommand::execute() {
+    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+
+    int fd1 = open(args[1], O_RDONLY);
+    if (fd1 == -1) {
+        perror("smash error: open failed");
+        return;
+    }
+
+    int fd2 = open(args[2],  O_CREAT | O_TRUNC | O_WRONLY ,0644);
+    if (fd2 == -1) {
+        close(fd1);
+        perror("smash error: open failed");
+        return;
+    }
+
+    char temp[256];
+    int res = read(fd1, temp, sizeof(temp));
+    if (res == -1) {
+        close(fd1);
+        close(fd2);
+        perror("smash error: read failed");
+        return;
+    }
+
+    if (write(fd2, temp, res) == -1) {
+        close(fd1);
+        close(fd2);
+        perror("smash error: write failed");
+        return;
+    }
+
+    while (res != 0) {
+        res = read(fd1, temp, sizeof(temp));
+        if (res == -1) {
+            perror("smash error: read failed");
+            return;
+        }
+
+        if(res != 0) {
+            if (write(fd2, temp, res) == -1) {
+                close(fd1);
+                close(fd2);
+                perror("smash error: write failed");
+                return;
+            }
+        }
+    }
+
+    close(fd1);
+    close(fd2);
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
+    cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
+    return;
 }
