@@ -29,57 +29,57 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 
 string _ltrim(const std::string& s)
 {
-  size_t start = s.find_first_not_of(WHITESPACE);
-  return (start == std::string::npos) ? "" : s.substr(start);
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
 }
 
 string _rtrim(const std::string& s)
 {
-  size_t end = s.find_last_not_of(WHITESPACE);
-  return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
 }
 
 string _trim(const std::string& s)
 {
-  return _rtrim(_ltrim(s));
+    return _rtrim(_ltrim(s));
 }
 
 int _parseCommandLine(const char* cmd_line, char** args) {
-  FUNC_ENTRY()
-  int i = 0;
-  std::istringstream iss(_trim(string(cmd_line)).c_str());
-  for(std::string s; iss >> s; ) {
-    args[i] = (char*)malloc(s.length()+1);
-    memset(args[i], 0, s.length()+1);
-    strcpy(args[i], s.c_str());
-    args[++i] = NULL;
-  }
-  return i;
+    FUNC_ENTRY()
+    int i = 0;
+    std::istringstream iss(_trim(string(cmd_line)).c_str());
+    for(std::string s; iss >> s; ) {
+        args[i] = (char*)malloc(s.length()+1);
+        memset(args[i], 0, s.length()+1);
+        strcpy(args[i], s.c_str());
+        args[++i] = NULL;
+    }
+    return i;
 
-  FUNC_EXIT()
+    FUNC_EXIT()
 }
 
 bool _isBackgroundComamnd(const char* cmd_line) {
-  const string str(cmd_line);
-  return str[str.find_last_not_of(WHITESPACE)] == '&';
+    const string str(cmd_line);
+    return str[str.find_last_not_of(WHITESPACE)] == '&';
 }
 
 void _removeBackgroundSign(char* cmd_line) {
-  const string str(cmd_line);
-  // find last character other than spaces
-  unsigned int idx = str.find_last_not_of(WHITESPACE);
-  // if all characters are spaces then return
-  if (idx == string::npos) {
-    return;
-  }
-  // if the command line does not end with & then return
-  if (cmd_line[idx] != '&') {
-    return;
-  }
-  // replace the & (background sign) with space and then remove all tailing spaces.
-  cmd_line[idx] = ' ';
-  // truncate the command line string up to the last non-space character
-  cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
+    const string str(cmd_line);
+    // find last character other than spaces
+    unsigned int idx = str.find_last_not_of(WHITESPACE);
+    // if all characters are spaces then return
+    if (idx == string::npos) {
+        return;
+    }
+    // if the command line does not end with & then return
+    if (cmd_line[idx] != '&') {
+        return;
+    }
+    // replace the & (background sign) with space and then remove all tailing spaces.
+    cmd_line[idx] = ' ';
+    // truncate the command line string up to the last non-space character
+    cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
 // TODO: Add your implementation for classes in Commands.h
@@ -89,7 +89,7 @@ Command::Command(const char* cmd_line): pid(-1) {
 
     if (_isBackgroundComamnd(cmd_line))
         state = Background;
-     else
+    else
         state = Foregroung;
 
     this->cmd_line = (char *) malloc(sizeof(char) * strlen(cmd_line) + 1);
@@ -146,7 +146,7 @@ SmallShell::SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-	// For example:
+    // For example:
 /*
   string cmd_s = string(cmd_line);
   if (cmd_s.find("pwd") == 0) {
@@ -158,33 +158,33 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new ExternalCommand(cmd_line);
   }
   */
-  return nullptr;
+    return nullptr;
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
-  // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
+    // TODO: Add your implementation here
+    // for example:
+    // Command* cmd = CreateCommand(cmd_line);
+    // cmd->execute();
+    // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 
 
 //////jobs//////
 void JobsList::addJob(Command *cmd, bool isStopped) {
-        if (!cmd) return;
-        removeFinishedJobs();
+    if (!cmd) return;
+    removeFinishedJobs();
 
-        if (isStopped){
-            cmd->set_state(Stopped);
-        }
-        else{
-            cmd->set_state(Background);
-        }
+    if (isStopped){
+        cmd->set_state(Stopped);
+    }
+    else{
+        cmd->set_state(Background);
+    }
 
-        int new_id = ((this->jobs).back().get_job_id()) + 1;
-        JobEntry new_job = JobEntry(cmd,new_id);
-        this->jobs.push_back(new_job);
+    int new_id = ((this->jobs).back().get_job_id()) + 1;
+    JobEntry new_job = JobEntry(cmd,new_id);
+    this->jobs.push_back(new_job);
 }
 
 void JobsList::printJobsList() {
@@ -198,19 +198,19 @@ void JobsList::printJobsList() {
     for(size_t i = 0; i < (this->jobs).size(); ++i){
         double elapsed_time = difftime(time2, jobs[i].get_time());
 
-        if (jobs[i].get_cmd().get_state() == Stopped){
+        if (jobs[i].get_cmd()->get_state() == Stopped){
 
-            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd().get_cmd_line()
-            << " : " << jobs[i].get_cmd().get_pid() << " " << elapsed_time << "secs (stopped)" << endl;
+            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd()->get_cmd_line()
+                 << " : " << jobs[i].get_cmd()->get_pid() << " " << elapsed_time << "secs (stopped)" << endl;
         }
         else{
-            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd().get_cmd_line()
-                 << " : " << jobs[i].get_cmd().get_pid() << " " << elapsed_time << " secs" << endl;
+            cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd()->get_cmd_line()
+                 << " : " << jobs[i].get_cmd()->get_pid() << " " << elapsed_time << " secs" << endl;
         }
     }
 }
 
-JobEntry* JobsList::getJobById(int jobId) {
+JobsList::JobEntry* JobsList::getJobById(int jobId) {
     removeFinishedJobs();
 
     for (size_t i = 0; i < (this->jobs).size(); ++i) {
@@ -231,18 +231,18 @@ void JobsList::removeJobById(int jobId) {
     }
 }
 
-JobEntry* JobsList::getLastJob(int *lastJobId) {
+JobsList::JobEntry* JobsList::getLastJob(int *lastJobId) {
     removeFinishedJobs();
 
     *lastJobId = jobs.back().get_job_id();
     return &(jobs.back());
 }
 
-JobEntry* JobsList::getLastStoppedJob(int *jobId) {
+JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId) {
     removeFinishedJobs();
 
-    for (size_t i = (this->jobs).size()-1; i >= 0: --i) {
-        if (jobs[i].get_cmd().get_state() == Stopped){
+    for (size_t i = (this->jobs).size()-1; i >= 0; --i) {
+        if (jobs[i].get_cmd()->get_state() == Stopped){
             *jobId = jobs[i].get_job_id();
             return  &(jobs[i]);
         }
@@ -253,18 +253,20 @@ bool JobsList::is_job_exist(int id) {
     removeFinishedJobs();
 
     for (size_t i = 0; i < (this->jobs).size(); ++i) {
-        if (jobs[i].get_job_id() == id){
-            return true
+        if (jobs[i].get_job_id() == id) {
+            return true;
         }
     }
+
     return false;
 }
 
 void JobsList::killAllJobs() {
+
     removeFinishedJobs();
 
     for (size_t i = 0; i < (this->jobs).size(); ++i) {
-        int ret = kill(job[i].get_cmd().get_pid(), SIGKILL);
+        int ret = kill(jobs[i].get_cmd()->get_pid(), SIGKILL);
         if (ret != 0) {
             perror("smash error: kill failed");
         }
