@@ -339,18 +339,74 @@ void QuitCommand::execute() {
 ///bg command
 void BackgroundCommand::execute() {
     jobs->removeFinishedJobs();
+
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
     char *args[COMMAND_MAX_ARGS];
     int command_length = _parseCommandLine(str.c_str(), args);
 
     if (command_length > 2) {
         cerr << "smash error: bg: invalid arguments" << endl;
+        free_args(args,command_length);
         return;
     }
 
+    int id=-1;
 
+    //if an argument was sent
+    if (command_length == 2) {
+        //check format
+        if (!(is_number(args[1]))) {
+            cout << "smash error: bg: invalid arguments" << endl;
+            free_args(args,command_length);
+            return;
+        }
+        //is a number
+        stringstream str1(args[1]);
+        str1 >> id;
+        //job-id does not exist
+        if (!(jobs->is_job_exist(id))) {
+            cout << "smash error: bg: job-id " << id << " does not exist" << endl;
+            free_args(args,command_length);
+            return;
+        }
+        //exists but not stopped
+        if (jobs->getJobById(id)->get_cmd()->get_state() != Stopped){
+            cout << "smash error: bg: job-id " << id << " is already running in the background" << endl;
+            free_args(args,command_length);
+            return;
+        }
+    }
+    //check if no argument was sent, id still not updated
+    if (id == -1) {
+        JobsList::JobEntry *jobEntry = jobs->getLastStoppedJob(&id);
+        //check if list empty || no stopped job
+        if (jobEntry == NULL && id == 0) {
+            cout << "smash error: bg: there is no stopped jobs to resume" << endl;
+            free_args(args,command_length);
+            return;
+        }
+    }
+    //if got here, then value in id is valid
+    free_args(args,command_length);
 
+    JobsList::JobEntry* jobEntry = jobs->getJobById(id);
+    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
+    jobEntry->get_cmd()->set_state(Background);
+
+    int ret = kill(jobEntry->get_cmd()->get_pid(), SIGCONT);
+    if (ret!=0){
+        perror("smash error: kill failed");
+    }
 }
+
+//////checking if a string is a number/////
+bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+/////////////////////////////////////
 
 
 ///cp
@@ -431,15 +487,6 @@ void JobsCommand::execute() {
 }
 
 
-//////checking if a string is a number/////
-bool is_number(const std::string& s)
-{
-    std::string::const_iterator it = s.begin();
-    while (it != s.end() && std::isdigit(*it)) ++it;
-    return !s.empty() && it == s.end();
-}
-/////////////////////////////////////
-
 
 ///kill command
 void KillCommand::execute() {
@@ -488,6 +535,12 @@ void KillCommand::execute() {
     }
 }
 
+void free_args(char* args [], int command_length){
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
+}
+
 
 ///fg command
 void ForegroundCommand::execute() {
@@ -500,6 +553,7 @@ void ForegroundCommand::execute() {
     //check arguments_number
     if (command_length > 2) {
         cout << "smash error: fg: invalid arguments" << endl;
+        free_args(args,command_length);
         return;
     }
     int id=-1;
@@ -509,6 +563,7 @@ void ForegroundCommand::execute() {
         //check format
         if (!(is_number(args[1]))) {
             cout << "smash error: fg: invalid arguments" << endl;
+            free_args(args,command_length);
             return;
         }
         //is a number
@@ -517,22 +572,24 @@ void ForegroundCommand::execute() {
         //job-id does not exist
         if (!(jobs->is_job_exist(id))){
             cout << "smash error: fg: job-id " << id << " does not exist" << endl;
+            free_args(args,command_length);
             return;
         }
     }
     //check if no argument was sent, id still not updated
     if (id == -1){
         if (jobs->isEmpty()){
+            free_args(args,command_length);
             cout << "smash error: fg: jobs list is empty" << endl;
+
         }
         else{
             jobs->getLastJob(&id);
         }
     }
 
-    for (int i = 0;i<command_length;i++) {
-        free(args[i]);
-    }
+    //if got here, then value in id is valid
+    free_args(args,command_length);
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;

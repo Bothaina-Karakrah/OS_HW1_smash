@@ -14,6 +14,8 @@
 
 typedef enum{Foregroung, Background, Stopped}State;
 
+bool is_number(const std::string& s);
+void free_args(char* args [], int command_length);
 ///Command///
 class Command {
 // TODO: Add your data members
