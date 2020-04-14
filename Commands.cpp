@@ -211,6 +211,8 @@ void JobsList::printJobsList() {
     }
 }
 
+
+
 JobsList::JobEntry* JobsList::getJobById(int jobId) {
     removeFinishedJobs();
 
@@ -396,3 +398,75 @@ void CopyCommand::execute() {
     cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
     return;
 }
+
+
+///jobs command
+void JobsCommand::execute() {
+    jobs->removeFinishedJobs();
+
+    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+
+    //no need to check command length since it ignores other arguments
+    jobs->printJobsList();
+}
+
+
+//////checking if a string is a number/////
+bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+/////////////////////////////////////
+
+
+///kill command
+void KillCommand::execute() {
+    jobs->removeFinishedJobs();
+
+    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+    //check arguments_number
+    if (command_length != 3){
+        cout << "smash error: kill: invalid arguments" << endl;
+        return;
+    }
+    //check arguments_format
+    if (!is_number(args[1]) || !is_number(args[2])){
+        cout << "smash error: kill: invalid arguments" << endl;
+        return;
+    }
+
+    //converting to an int
+    stringstream str1(args[1]);
+    int signum = 0;
+    str1 >> signum;
+
+    stringstream str2(args[2]);
+    int job_id =0;
+    str2 >> job_id;
+
+    //check if job-id exists
+    if (!(jobs->is_job_exist(job_id))){
+        cout << "smash error: kill: job-id " << job_id<< " does not exist" << endl;
+        return;
+    }
+
+    JobsList::JobEntry* jobEntry = jobs->getJobById(job_id);
+    int ret = kill(jobEntry->get_cmd()->get_pid(), signum);
+
+    if (ret != 0) {
+        perror("smash error: kill failed");
+    }
+    else{
+        cout << "signal number " << signum << " was sent to pid " << job_id << endl;
+    }
+
+}
+
+
+
