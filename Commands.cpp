@@ -93,7 +93,39 @@ SmallShell::SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
-
+    string cmd_s = string(cmd_line);
+    if(cmd_s.find("chprompt") == 0){
+        return new chprompt(cmd_line, &smash_prompt);
+    } else if(cmd_s.find("showpid") == 0){
+        return new ShowPidCommand(cmd_line);
+    }
+    else if(cmd_s.find("pwd") == 0){
+        return new GetCurrDirCommand(cmd_line);
+    }
+    else if(cmd_s.find("cd") == 0){
+        return  new ChangeDirCommand(cmd_line, &plast);
+    }
+    else if(cmd_s.find("jobs") == 0){
+        return new JobsCommand(cmd_line, &jobslist);
+    }
+    else if (cmd_s.find("kill") == 0){
+        return new KillCommand(cmd_line, &jobslist);
+    }
+    else if(cmd_s.find("fg") == 0){
+        return new ForegroundCommand(cmd_line, &jobslist);
+    }
+    else if(cmd_s.find("bg") == 0){
+        return new BackgroundCommand(cmd_line, &jobslist);
+    }
+    else if(cmd_s.find("quit") == 0){
+        return new QuitCommand(cmd_line, &jobslist);
+    }
+//    else if(cmd_s.find("pipe") == 0){
+//        return  new PipeCommand(cmd_line);
+//    }
+    else{
+        return new ExternalCommand(cmd_line);
+    }
     return nullptr;
 }
 
@@ -221,7 +253,22 @@ void ChangeDirCommand::execute() {
                 }
                 free(new_path);
             }
-        }else {
+        }else if(strcmp(args[1], "..") == 0){
+            char* new_path = (char *) malloc(sizeof(char) * 1024);
+            getcwd(new_path, 1024);
+            if ( chdir("/home") != 0) {
+                perror("smash error: chdir failed");
+                free_args(args, command_len);
+                return;
+            } else {
+                if(*plast == nullptr){
+                    *plast = (char*)malloc(sizeof(char)*1024);
+                }
+                strcpy(*plast, new_path);
+            }
+            free(new_path);
+        }
+        else {
             char* new_path = (char *) malloc(sizeof(char) * 1024);
             getcwd(new_path, 1024);
             if ( chdir(args[1]) != 0) {
@@ -229,6 +276,9 @@ void ChangeDirCommand::execute() {
                 free_args(args, command_len);
                 return;
             } else {
+                if(*plast == nullptr){
+                    *plast = (char*)malloc(sizeof(char)*1024);
+                }
                 strcpy(*plast, new_path);
             }
             free(new_path);
