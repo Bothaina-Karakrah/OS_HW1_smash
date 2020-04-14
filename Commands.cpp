@@ -301,6 +301,11 @@ void JobsList::removeFinishedJobs() {
     }
 }
 
+bool JobsList::isEmpty() {
+    return jobs.empty();
+}
+
+
 
 ///quit
 void QuitCommand::execute() {
@@ -469,4 +474,57 @@ void KillCommand::execute() {
 }
 
 
+///fg command
+void ForegroundCommand::execute() {
+    jobs->removeFinishedJobs();
+
+    string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_length = _parseCommandLine(str.c_str(), args);
+
+    //check arguments_number
+    if (command_length > 2) {
+        cout << "smash error: fg: invalid arguments" << endl;
+        return;
+    }
+    int id=-1;
+
+    //if an argument was sent
+    if (command_length == 2) {
+        //check format
+        if (!(is_number(args[1]))) {
+            cout << "smash error: fg: invalid arguments" << endl;
+            return;
+        }
+        //is a number
+        stringstream str1(args[1]);
+        str1 >> id;
+        //job-id does not exist
+        if (!(jobs->is_job_exist(id))){
+            cout << "smash error: fg: job-id " << id << " does not exist" << endl;
+            return;
+        }
+    }
+    //check if no argument was sent, id still not updated
+    if (id == -1){
+        if (jobs->isEmpty()){
+            cout << "smash error: fg: jobs list is empty" << endl;
+        }
+        else{
+            jobs->getLastJob(&id);
+        }
+    }
+
+    JobsList::JobEntry* jobEntry = jobs->getJobById(id);
+    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
+    jobs->removeJobById(id);
+
+    int ret = kill(jobEntry->get_cmd()->get_pid(), SIGCONT);
+    if (ret!=0){
+        perror("smash error: kill failed");
+    }
+
+    waitpid(jobEntry->get_cmd()->get_pid(), nullptr, WNOHANG);
+
+}
 

@@ -142,6 +142,7 @@ class JobsList {
   void removeJobById(int jobId);
   JobEntry * getLastJob(int* lastJobId);
   JobEntry *getLastStoppedJob(int *jobId);
+  bool isEmpty();
   // TODO: Add extra methods or modify exisitng ones as needed
   bool is_job_exist(int id);
   void print_before_quit();
