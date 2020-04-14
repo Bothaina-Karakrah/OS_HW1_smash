@@ -237,8 +237,12 @@ void JobsList::removeJobById(int jobId) {
 JobsList::JobEntry* JobsList::getLastJob(int *lastJobId) {
     removeFinishedJobs();
 
-    *lastJobId = jobs.back().get_job_id();
-    return &(jobs.back());
+    if (!(jobs.empty())) {
+        *lastJobId = jobs.back().get_job_id();
+        return &(jobs.back());
+    }
+    *lastJobId = 0;
+    return NULL;
 }
 
 JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId) {
@@ -250,6 +254,9 @@ JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId) {
             return  &(jobs[i]);
         }
     }
+    //if the list is empty || there's no stopped job
+    *jobId = 0;
+    return NULL;
 }
 
 bool JobsList::is_job_exist(int id) {
@@ -329,7 +336,7 @@ void QuitCommand::execute() {
 }
 
 
-///bg
+///bg command
 void BackgroundCommand::execute() {
     jobs->removeFinishedJobs();
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
@@ -340,6 +347,9 @@ void BackgroundCommand::execute() {
         cerr << "smash error: bg: invalid arguments" << endl;
         return;
     }
+
+
+
 }
 
 
@@ -415,6 +425,9 @@ void JobsCommand::execute() {
 
     //no need to check command length since it ignores other arguments
     jobs->printJobsList();
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
 }
 
 
@@ -470,7 +483,9 @@ void KillCommand::execute() {
     else{
         cout << "signal number " << signum << " was sent to pid " << job_id << endl;
     }
-
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
 }
 
 
@@ -515,6 +530,10 @@ void ForegroundCommand::execute() {
         }
     }
 
+    for (int i = 0;i<command_length;i++) {
+        free(args[i]);
+    }
+
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
     jobs->removeJobById(id);
@@ -527,4 +546,3 @@ void ForegroundCommand::execute() {
     waitpid(jobEntry->get_cmd()->get_pid(), nullptr, WNOHANG);
 
 }
-
