@@ -374,7 +374,7 @@ JobsList::JobEntry* JobsList::getLastJob(int *lastJobId) {
 JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId) {
     removeFinishedJobs();
 
-    for (size_t i = (this->jobs).size()-1; i >= 0; --i) {
+    for (int i = (this->jobs).size()-1; i >= 0; i--) {
         if (jobs[i].get_cmd()->get_state() == Stopped){
             *jobId = jobs[i].get_job_id();
             return  &(jobs[i]);
