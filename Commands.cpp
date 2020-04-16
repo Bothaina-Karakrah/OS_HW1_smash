@@ -347,6 +347,7 @@ JobsList::JobEntry* JobsList::getJobById(int jobId) {
             return &(jobs[i]);
         }
     }
+    return NULL;
 }
 
 void JobsList::removeJobById(int jobId) {
@@ -420,7 +421,7 @@ void JobsList::print_before_quit() {
 }
 
 void JobsList::removeFinishedJobs() {
-    for(int i=0;i<jobs.size();i++) {
+    for(size_t i = 0; i < (this->jobs).size(); ++i) {
 
         int waitpid_res = waitpid(jobs[i].get_cmd()->get_pid() ,NULL ,WNOHANG);
          if (waitpid_res >0) {
