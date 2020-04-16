@@ -632,6 +632,11 @@ void BackgroundCommand::execute() {
     free_args(args,command_len);
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
+    ///////////////////////////////
+    if(_isBackgroundComamnd(jobEntry->get_cmd()->get_cmd_line()))
+    {
+        _removeBackgroundSign(jobEntry->get_cmd()->get_cmd_line());
+    }
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
 
     if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
