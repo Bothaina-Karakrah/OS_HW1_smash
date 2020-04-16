@@ -328,7 +328,7 @@ void JobsList::printJobsList() {
         if (jobs[i].get_cmd()->get_state() == Stopped){
 
             cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd()->get_cmd_line()
-                 << " : " << jobs[i].get_cmd()->get_pid() << " " << elapsed_time << "secs (stopped)" << endl;
+                 << " : " << jobs[i].get_cmd()->get_pid() << " " << elapsed_time << " secs (stopped)" << endl;
         }
         else{
             cout << "[" << jobs[i].get_job_id() << "] "<< jobs[i].get_cmd()->get_cmd_line()
@@ -535,7 +535,8 @@ void ForegroundCommand::execute() {
         if (jobs->isEmpty()){
             free_args(args,command_len);
             cout << "smash error: fg: jobs list is empty" << endl;
-
+            free_args(args,command_len);
+            return;
         }
         else{
             jobs->getLastJob(&id);
@@ -546,12 +547,15 @@ void ForegroundCommand::execute() {
     free_args(args,command_len);
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
-    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
+    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << jobEntry->get_cmd()->get_pid() << endl;
 
     if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
         perror("smash error: kill failed");
         return;
     }
+
+    jobs->removeJobById(id);
+
     SmallShell &smallShell = smallShell.getInstance();
     smallShell.set_curr_pid(jobEntry->get_cmd()->get_pid()) ;
     this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
@@ -570,7 +574,6 @@ void ForegroundCommand::execute() {
     }
     smallShell.set_curr_pid(-1) ;
     this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
-    jobs->removeJobById(id);
     return;
 }
 
@@ -602,13 +605,13 @@ void BackgroundCommand::execute() {
         //is a number
         id = atoi(args[1]);
         if (id <= 0 ) {
-            cerr << "smash error: fg: invalid arguments" << endl;
+            cerr << "smash error: bg: invalid arguments" << endl;
             free_args(args,command_len);
             return;
         }
         //job-id does not exist
         if (!(jobs->is_job_exist(id))){
-            cout << "smash error: fg: job-id " << id << " does not exist" << endl;
+            cout << "smash error: bg: job-id " << id << " does not exist" << endl;
             free_args(args,command_len);
             return;
         }
@@ -638,7 +641,7 @@ void BackgroundCommand::execute() {
     {
         _removeBackgroundSign(jobEntry->get_cmd()->get_cmd_line());
     }
-    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << id << endl;
+    cout << jobEntry->get_cmd()->get_cmd_line() << " : " << jobEntry->get_cmd()->get_pid() << endl;
 
     if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
         perror("smash error: kill failed");
