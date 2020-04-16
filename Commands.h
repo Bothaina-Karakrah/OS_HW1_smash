@@ -117,6 +117,9 @@ public:
         void set_cmd(Command *new_cmd,int new_job_id){
             this->cmd = new_cmd;
             this->job_id = new_job_id;
+            if(time(&init_time) == (time_t)-1){
+                perror("smash error: time failed");
+            }
         }
 
         void set_job_id(int new_job_id){
@@ -136,7 +139,7 @@ public:
 
     // TODO: Add your data members
 public:
-    JobsList():curr_fg(){};////////////////
+    JobsList():curr_fg_job(){};////////////////
     ~JobsList(){};
     void addJob(Command* cmd, bool isStopped = false);
     void printJobsList();
@@ -147,7 +150,9 @@ public:
     JobEntry * getLastJob(int* lastJobId);
     JobEntry *getLastStoppedJob(int *jobId);
     bool isEmpty();
+
     // TODO: Add extra methods or modify exisitng ones as needed
+
     bool is_job_exist(int id);
     void print_before_quit();
 
@@ -155,17 +160,17 @@ public:
         jobs.clear();
     }
 
-    JobEntry* get_curr_fg(){
-        return &(this->curr_fg);
+    JobEntry* get_curr_fg_job(){
+        return &(this->curr_fg_job);
     }
 
-    void set_curr_fg(Command* cmd,int job_id){
-        this->curr_fg.set_cmd(cmd,job_id);
+    void set_curr_fg_job(Command* cmd,int job_id){
+        this->curr_fg_job.set_cmd(cmd,job_id);
     }
 
 private:
     std::vector<JobEntry> jobs;
-    JobEntry curr_fg;
+    JobEntry curr_fg_job;
 };
 
 class JobsCommand : public BuiltInCommand {
