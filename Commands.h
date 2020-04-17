@@ -50,24 +50,33 @@ public:
     void execute() override;
 };
 
+//I/o
+///I/o
+class RedirectionCommand : public Command {
+    // TODO: Add your data members
+public:
+    explicit RedirectionCommand(const char* cmd_line) : Command(cmd_line) {};
+
+
+    virtual ~RedirectionCommand() {}
+
+    void execute() override;
+    //void prepare() override;
+    //void cleanup() override;
+};
+
 ///pipe command///
 class PipeCommand : public Command {
     // TODO: Add your data members
+    char** prompt_;
+
 public:
-    PipeCommand(const char* cmd_line) : Command(cmd_line){};
+    PipeCommand(const char* cmd_line, char** prompt) : Command(cmd_line), prompt_(prompt) {};
     virtual ~PipeCommand() {}
     void execute() override;
 };
 
 ///cd///
-//class RedirectionCommand : public Command {
-//    // TODO: Add your data members
-//public:
-//    explicit RedirectionCommand(const char* cmd_line): Command(cmd_line){};
-//    virtual ~RedirectionCommand() {}
-//    void execute() override;
-//};
-
 class ChangeDirCommand : public BuiltInCommand {
     char** plast;
 // TODO: Add your data members
