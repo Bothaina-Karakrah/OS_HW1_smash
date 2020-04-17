@@ -54,8 +54,9 @@ public:
 ///I/o
 class RedirectionCommand : public Command {
     // TODO: Add your data members
+    char** prompt_;
 public:
-    explicit RedirectionCommand(const char* cmd_line) : Command(cmd_line) {};
+    explicit RedirectionCommand(const char* cmd_line, char** prompt) : Command(cmd_line), prompt_(prompt) {};
 
 
     virtual ~RedirectionCommand() {}

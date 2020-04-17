@@ -99,8 +99,13 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     }
     else if(cmd_s.find("chprompt") == 0){
         return new chprompt(cmd_line, &smash_prompt);
-      
-    } else if(cmd_s.find("showpid") == 0){
+
+    }
+    else if(cmd_s.find(">") != string::npos)
+    {
+        return new RedirectionCommand(cmd_line,&smash_prompt);
+    }
+    else if(cmd_s.find("showpid") == 0){
         return new ShowPidCommand(cmd_line);
     }
     else if(cmd_s.find("pwd") == 0){
@@ -127,10 +132,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     else if(cmd_s.find("|") != string::npos){
         return  new PipeCommand(cmd_line, &smash_prompt);
     }
-    else if(cmd_s.find(">") != string::npos)
-    {
-        return new RedirectionCommand(cmd_line);
-    }
+
     return new ExternalCommand(cmd_line);
 }
 
@@ -720,11 +722,83 @@ void ExternalCommand::execute() {
     return;
 }
 
+////redirection
+void RedirectionCommand::execute() {
+    string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_len = _parseCommandLine(str.c_str(), args);
 
+    int RD_index = string(this->get_cmd_line()).find('>');
+    bool is_append = false;
+    if (this->get_cmd_line()[RD_index + 1] == '>') {
+        is_append = true;
+    }
+    int file_output;
+
+    //check if not is_append -> need to override
+    if (!is_append) {
+        //enable create if does not exist + override if exists
+        file_output = open(args[command_len - 1], O_CREAT | O_TRUNC | O_WRONLY);
+        if (file_output == -1) {
+            free_args(args, command_len);
+            perror("smash error: open failed");
+            return;
+        }
+    } else {
+        //enable create if not exists + append if exists
+        file_output = open(args[command_len - 1], O_CREAT | O_WRONLY);
+        if (file_output == -1) {
+            free_args(args, command_len);
+            perror("smash error: open failed");
+            return;
+        }
+    }
+
+    SmallShell &smallShell = smallShell.getInstance();
+    string cmdLine = string(get_cmd_line());
+    Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+
+    //save stdout
+    int command_stdout = dup(1);
+    if (command_stdout == -1) {
+        free_args(args, command_len);
+        perror("smash error: dup failed");
+        if (close(file_output) == -1){
+            perror("smash error: close failed");
+        }
+        return;
+    }
+
+    if (dup2(file_output, 1) == -1) {
+        free_args(args, command_len);
+        perror("smash error: dup2 failed");
+        if (close(file_output) == -1){
+            perror("smash error: close failed");
+        }
+        return;
+    }
+
+    command->execute();
+
+    if (dup2(command_stdout, 1) == -1) {
+        free_args(args, command_len);
+        perror("smash error: dup2 failed");
+        if (close(file_output) == -1){
+            perror("smash error: close failed");
+        }
+        return;
+    }
+
+    free_args(args, command_len);
+    if (close(file_output) == -1){
+        perror("smash error: close failed");
+    }
+
+}
 
 ///pipe
 void PipeCommand::execute() {
-     int pipe_index = string(this->get_cmd_line()).find('|');
+    int pipe_index = string(this->get_cmd_line()).find('|');
     bool is_stderr = this->get_cmd_line()[pipe_index + 1] && this->get_cmd_line()[pipe_index + 1] == '&';
 
     SmallShell &smallShell = smallShell.getInstance();
