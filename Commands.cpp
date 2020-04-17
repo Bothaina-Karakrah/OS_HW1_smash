@@ -724,15 +724,14 @@ void ExternalCommand::execute() {
 
 ///pipe
 void PipeCommand::execute() {
-    int pipe_index = string(this->get_cmd_line()).find('|');
-    bool is_stderr =false;
-    if(this->get_cmd_line()[pipe_index + 1] && this->get_cmd_line()[pipe_index + 1] == '&')
-    {
-        is_stderr = true;
-    }
+     int pipe_index = string(this->get_cmd_line()).find('|');
+    bool is_stderr = this->get_cmd_line()[pipe_index + 1] && this->get_cmd_line()[pipe_index + 1] == '&';
 
-    auto source = SmallShell::CreateCommand();
-    auto target = SmallShell::CreateCommand();
+    SmallShell &smallShell = smallShell.getInstance();
+
+    string cmdLine = string(get_cmd_line());
+    auto source = smallShell.CreateCommand(cmdLine.substr(0, pipe_index).c_str(), *prompt_);
+    auto target = smallShell.CreateCommand((cmdLine.substr(pipe_index + (int) is_stderr + 1)).c_str(), *prompt_);
 
     int Pipe[2];
     pipe(Pipe);
@@ -758,6 +757,7 @@ void PipeCommand::execute() {
             perror("smash error: close failed");
         exit(0);
     }
+    //father
     else {
         if (close(Pipe[0]) == -1)
             perror("smash error: close failed");
