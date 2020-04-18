@@ -738,7 +738,7 @@ void RedirectionCommand::execute() {
     //check if not is_append -> need to override
     if (!is_append) {
         //enable create if does not exist + override if exists
-        file_output = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC);
+        file_output = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC,0644);
         if (file_output == -1) {
             free_args(args, command_len);
             perror("smash error: open failed");
@@ -747,7 +747,7 @@ void RedirectionCommand::execute() {
     }
     else {
         //enable create if not exists + append if exists
-        file_output = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY );
+        file_output = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY , 0644);
         if (file_output == -1) {
             free_args(args, command_len);
             perror("smash error: open failed");
