@@ -97,13 +97,16 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     if(cmd_s == ""){
         return nullptr;
     }
-    else if(cmd_s.find("chprompt") == 0){
-        return new chprompt(cmd_line, &smash_prompt);
-
+    else if(cmd_s.find("|") != string::npos){
+        return  new PipeCommand(cmd_line, &smash_prompt);
     }
     else if(cmd_s.find(">") != string::npos)
     {
         return new RedirectionCommand(cmd_line,&smash_prompt);
+    }
+    else if(cmd_s.find("chprompt") == 0){
+        return new chprompt(cmd_line, &smash_prompt);
+
     }
     else if(cmd_s.find("showpid") == 0){
         return new ShowPidCommand(cmd_line);
@@ -129,19 +132,16 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     else if(cmd_s.find("quit") == 0){
         return new QuitCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s.find("|") != string::npos){
-        return  new PipeCommand(cmd_line, &smash_prompt);
-    }
-
+    
     return new ExternalCommand(cmd_line);
 }
 
 void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     // TODO: Add your implementation here
-     Command* cmd = CreateCommand(cmd_line, smash_prompt);
-     if(cmd == nullptr)
-         return;
-     cmd->execute();
+    Command* cmd = CreateCommand(cmd_line, smash_prompt);
+    if(cmd == nullptr)
+        return;
+    cmd->execute();
 }
 
 
@@ -253,7 +253,7 @@ void ChangeDirCommand::execute() {
                 free_args(args, command_len);
                 return;
             }
-            //plast not null
+                //plast not null
             else {
                 char* new_path = (char *) malloc(sizeof(char) * 1024);
                 getcwd(new_path, 1024);
@@ -431,7 +431,7 @@ void JobsList::removeFinishedJobs() {
     for(size_t i = 0; i < (this->jobs).size(); ++i) {
 
         int waitpid_res = waitpid(jobs[i].get_cmd()->get_pid() ,NULL ,WNOHANG);
-         if (waitpid_res >0) {
+        if (waitpid_res >0) {
             jobs.erase(jobs.begin()+i);
             i--;
         }
@@ -704,7 +704,7 @@ void ExternalCommand::execute() {
         perror("smash error: execv failed");
         return;
     }
-    //father
+        //father
     else {
         int status;
         this->set_pid(pid);
@@ -832,7 +832,7 @@ void PipeCommand::execute() {
             perror("smash error: close failed");
         exit(0);
     }
-    //father
+        //father
     else {
         if (close(Pipe[0]) == -1)
             perror("smash error: close failed");
