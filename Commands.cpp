@@ -237,6 +237,7 @@ void GetCurrDirCommand::execute() {
 
 
 ///cd
+///////////////fix cd
 void ChangeDirCommand::execute() {
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
     char *args[COMMAND_MAX_ARGS];
