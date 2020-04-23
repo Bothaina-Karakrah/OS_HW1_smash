@@ -93,46 +93,63 @@ SmallShell::SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
-    string cmd_s = string(cmd_line);
+    string str = string(cmd_line,strlen(cmd_line)+1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_len =_parseCommandLine(str.c_str(), args);
+    string cmd_s = args[0];
+
     if(cmd_s == ""){
+        free_args(args, command_len);
         return nullptr;
     }
-    else if(cmd_s.find("|") != string::npos){
+    else if(str.find("|") != string::npos){
+        free_args(args, command_len);
         return  new PipeCommand(cmd_line, &smash_prompt);
     }
-    else if(cmd_s.find(">") != string::npos)
+    else if(str.find(">") != string::npos)
     {
+        free_args(args, command_len);
         return new RedirectionCommand(cmd_line,&smash_prompt);
     }
-    else if(cmd_s.find("chprompt") == 0){
+    else if(cmd_s =="chprompt"){
+        free_args(args, command_len);
         return new chprompt(cmd_line, &smash_prompt);
 
     }
-    else if(cmd_s.find("showpid") == 0){
+    else if(cmd_s =="showpid"){
+        free_args(args, command_len);
         return new ShowPidCommand(cmd_line);
     }
-    else if(cmd_s.find("pwd") == 0){
+    else if(cmd_s =="pwd"){
+        free_args(args, command_len);
         return new GetCurrDirCommand(cmd_line);
     }
-    else if(cmd_s.find("cd") == 0){
+    else if(cmd_s =="cd"){
+        free_args(args, command_len);
         return  new ChangeDirCommand(cmd_line, &plast);
     }
-    else if(cmd_s.find("jobs") == 0){
+    else if(cmd_s =="jobs"){
+        free_args(args, command_len);
         return new JobsCommand(cmd_line, &jobslist);
     }
-    else if (cmd_s.find("kill") == 0){
+    else if (cmd_s == "kill"){
+        free_args(args, command_len);
         return new KillCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s.find("fg") == 0){
+    else if(cmd_s =="fg"){
+        free_args(args, command_len);
         return new ForegroundCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s.find("bg") == 0){
+    else if(cmd_s =="bg"){
+        free_args(args, command_len);
         return new BackgroundCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s.find("quit") == 0){
+    else if(cmd_s =="quit"){
+        free_args(args, command_len);
         return new QuitCommand(cmd_line, &jobslist);
     }
-    
+
+    free_args(args, command_len);
     return new ExternalCommand(cmd_line);
 }
 
@@ -237,7 +254,6 @@ void GetCurrDirCommand::execute() {
 
 
 ///cd
-///////////////fix cd
 void ChangeDirCommand::execute() {
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
     char *args[COMMAND_MAX_ARGS];
@@ -265,20 +281,6 @@ void ChangeDirCommand::execute() {
                 }
                 free(new_path);
             }
-        }else if(strcmp(args[1], "..") == 0){
-            char* new_path = (char *) malloc(sizeof(char) * 1024);
-            getcwd(new_path, 1024);
-            if ( chdir("/home") != 0) {
-                perror("smash error: chdir failed");
-                free_args(args, command_len);
-                return;
-            } else {
-                if(*plast == nullptr){
-                    *plast = (char*)malloc(sizeof(char)*1024);
-                }
-                strcpy(*plast, new_path);
-            }
-            free(new_path);
         }
         else {
             char* new_path = (char *) malloc(sizeof(char) * 1024);
