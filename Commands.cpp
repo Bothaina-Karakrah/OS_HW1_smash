@@ -494,7 +494,7 @@ void KillCommand::execute() {
         perror("smash error: kill failed");
     }
     else{
-        cout << "signal number " << signum << " was sent to pid " << job_id << endl;
+        cout << "signal number " << signum << " was sent to pid " << jobEntry->get_cmd()->get_pid() << endl;
     }
     free_args(args,command_len);
 }
