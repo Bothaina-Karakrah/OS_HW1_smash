@@ -501,6 +501,7 @@ void KillCommand::execute() {
 
 
 ///ForeGround command
+///we have a bug here
 void ForegroundCommand::execute() {
     jobs->removeFinishedJobs();
 
