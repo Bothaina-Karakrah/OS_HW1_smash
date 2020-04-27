@@ -88,7 +88,9 @@ SmallShell::SmallShell() {
 // TODO: add your implementation
 }
 
-
+void SmallShell::set_prompt(char *new_prompt) {
+    strcpy(this->shell_prompt, new_prompt);
+}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
@@ -156,9 +158,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
 void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     // TODO: Add your implementation here
     Command* cmd = CreateCommand(cmd_line, smash_prompt);
-    if(cmd == nullptr)
+    if(cmd == nullptr) {
         return;
+    }
     cmd->execute();
+    this->set_prompt(cmd->get_command_prompt());
 }
 
 
@@ -181,7 +185,7 @@ bool is_number(const std::string& s)
 
 
 ///command///
-Command::Command(const char* cmd_line): pid(-1) {
+Command::Command(const char* cmd_line): pid(-1),command_prompt("smash") {
 
     if (_isBackgroundComamnd(cmd_line))
         state = Background;
@@ -194,6 +198,14 @@ Command::Command(const char* cmd_line): pid(-1) {
 
 Command::~Command() {
     free(cmd_line);
+}
+
+char * Command::get_command_prompt() {
+    return this->command_prompt;
+}
+
+void Command::set_command_prompt(char *str) {
+    strcpy(this->command_prompt, str);
 }
 
 char * Command::get_cmd_line() {
@@ -227,12 +239,14 @@ void chprompt::execute() {
     int command_len = _parseCommandLine(str.c_str(), args);
 
     if(command_len > 1){
-        strcpy(*prompt_, args[1]);///////////just args[1]???
+        this->set_command_prompt(args[1]);
+        //strcpy(*prompt_, args[1]);///////////just args[1]???
     } else{
-        strcpy(*prompt_, "smash");
+        char str[6]= "smash";
+        this->set_command_prompt(str);
+        //strcpy(*prompt_, "smash");
     }
     free_args(args, command_len);
-    return;
 }
 
 ///showpid///

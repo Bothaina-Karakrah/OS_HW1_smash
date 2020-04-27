@@ -16,15 +16,16 @@ int main(int argc, char* argv[]) {
 
     //TODO: setup sig alarm handler
 
-    char smash_prompt[1024];
-    strcpy(smash_prompt, "smash");
+   // char smash_prompt[1024];
+ //   strcpy(smash_prompt, "smash");
 
     SmallShell& smash = SmallShell::getInstance();
+    smash.set_prompt("smash");
     while(true) {
-        std::cout << smash_prompt <<">>"; // TODO: change this (why?)
+        std::cout << smash.get_prompt() <<">>"; // TODO: change this (why?)
         std::string cmd_line;
         std::getline(std::cin, cmd_line);
-        smash.executeCommand(cmd_line.c_str(), smash_prompt);
+        smash.executeCommand(cmd_line.c_str(), smash.get_prompt());
     }
     return 0;
 }

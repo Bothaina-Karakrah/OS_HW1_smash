@@ -22,6 +22,7 @@ class Command {
 //every command has the command line, pid and state
     char* cmd_line;
     pid_t pid;
+    char command_prompt [1024];
     State state;
 
 public:
@@ -34,6 +35,8 @@ public:
     pid_t get_pid();
     void set_state(State new_state);
     State get_state();
+    char* get_command_prompt();
+    void set_command_prompt(char* str);
 };
 
 class BuiltInCommand : public Command {
@@ -261,6 +264,7 @@ private:
     JobsList jobslist;
     char * plast;
     pid_t curr_pid;
+    char shell_prompt[1024];
     SmallShell();
 
 public:
@@ -293,6 +297,10 @@ public:
         return this->curr_pid;
     }
 
+    void set_prompt(char * new_prompt);
+    char* get_prompt(){
+        return this->shell_prompt;
+    }
 };
 
 #endif //SMASH_COMMAND_H_
