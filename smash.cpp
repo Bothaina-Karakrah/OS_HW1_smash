@@ -20,7 +20,8 @@ int main(int argc, char* argv[]) {
  //   strcpy(smash_prompt, "smash");
 
     SmallShell& smash = SmallShell::getInstance();
-    smash.set_prompt("smash");
+    char str[6]= "smash";
+    smash.set_prompt(str);
     while(true) {
         std::cout << smash.get_prompt() <<">>"; // TODO: change this (why?)
         std::string cmd_line;
