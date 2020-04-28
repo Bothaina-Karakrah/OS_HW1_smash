@@ -525,7 +525,6 @@ void KillCommand::execute() {
 
 
 ///ForeGround command
-///we have a bug here
 void ForegroundCommand::execute() {
     jobs->removeFinishedJobs();
 
@@ -713,7 +712,7 @@ void QuitCommand::execute() {
 void ExternalCommand::execute() {
 
     char path[10] = "/bin/bash";
-    char * cmdline = new char[COMMAND_MAX_ARGS];
+    char* cmdline =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
     char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, NULL};
