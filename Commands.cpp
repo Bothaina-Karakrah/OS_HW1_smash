@@ -98,9 +98,15 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     string str = string(cmd_line,strlen(cmd_line)+1);
     char *args[COMMAND_MAX_ARGS];
     int command_len =_parseCommandLine(str.c_str(), args);
-    string cmd_s = args[0];
 
-    if(cmd_s == ""){
+
+    int len = strlen(args[0])+1;
+    char cmd_s[len];
+    strcpy(cmd_s, args[0]);
+
+
+
+    if(*cmd_line == 0){
         free_args(args, command_len);
         return nullptr;
     }
@@ -113,40 +119,40 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         free_args(args, command_len);
         return new RedirectionCommand(cmd_line,&smash_prompt);
     }
-    else if(cmd_s =="chprompt"){
+    else if(strcmp(cmd_s, "chprompt") == 0){
         free_args(args, command_len);
         return new chprompt(cmd_line, &smash_prompt);
 
     }
-    else if(cmd_s =="showpid"){
+    else if(strcmp(cmd_s, "showpid") == 0){
         free_args(args, command_len);
         return new ShowPidCommand(cmd_line);
     }
-    else if(cmd_s =="pwd"){
+    else if(strcmp(cmd_s, "pwd") == 0){
         free_args(args, command_len);
         return new GetCurrDirCommand(cmd_line);
     }
-    else if(cmd_s =="cd"){
+    else if(strcmp(cmd_s, "cd") == 0){
         free_args(args, command_len);
         return  new ChangeDirCommand(cmd_line, &plast);
     }
-    else if(cmd_s =="jobs"){
+    else if(strcmp(cmd_s, "jobs") == 0){
         free_args(args, command_len);
         return new JobsCommand(cmd_line, &jobslist);
     }
-    else if (cmd_s == "kill"){
+    else if (strcmp(cmd_s, "kill") == 0){
         free_args(args, command_len);
         return new KillCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s =="fg"){
+    else if(strcmp(cmd_s, "fg") == 0){
         free_args(args, command_len);
         return new ForegroundCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s =="bg"){
+    else if(strcmp(cmd_s, "bg") == 0){
         free_args(args, command_len);
         return new BackgroundCommand(cmd_line, &jobslist);
     }
-    else if(cmd_s =="quit"){
+    else if(strcmp(cmd_s, "quit") == 0){
         free_args(args, command_len);
         return new QuitCommand(cmd_line, &jobslist);
     }
