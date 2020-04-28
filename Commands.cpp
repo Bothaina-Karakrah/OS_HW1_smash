@@ -156,6 +156,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         free_args(args, command_len);
         return new QuitCommand(cmd_line, &jobslist);
     }
+    else if(strcmp(cmd_s,"cp") == 0){
+        free_args(args, command_len);
+        return new CopyCommand(cmd_line);
+    }
 
     free_args(args, command_len);
     return new ExternalCommand(cmd_line);
@@ -936,7 +940,7 @@ void CopyCommand::execute() {
 
     close(file_in);
     close(file_out);
-    free_args(args, command_len);
     cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
+    free_args(args, command_len);
     return;
 }
