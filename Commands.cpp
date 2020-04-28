@@ -711,11 +711,11 @@ void QuitCommand::execute() {
 ///external commands
 void ExternalCommand::execute() {
 
-    char path[10] = "/bin/bash";
     char* cmdline =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
     char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, NULL};
+
     SmallShell &smallShell = smallShell.getInstance();
     pid_t pid = fork();
     //if fork failed
@@ -726,7 +726,7 @@ void ExternalCommand::execute() {
     //son:
     if (pid == 0) {
         setpgrp();
-        execv(path, argv);
+        execv("/bin/bash", argv);
         //if we here execv failed
         perror("smash error: execv failed");
         return;
@@ -740,7 +740,13 @@ void ExternalCommand::execute() {
             smallShell.get_job_list()->set_curr_fg_job(this, 0);
             if (waitpid(pid, &status, WUNTRACED) < 0 ) {
                 perror("smash error: waitpid failed");
+            }else {
+                //stopped
+                if (WIFSTOPPED(status))
+                    smallShell.get_job_list()->addJob(this, true);
             }
+            smallShell.set_curr_pid(-1);
+
         }
         else {
             smallShell.get_job_list()->addJob(this, false);
