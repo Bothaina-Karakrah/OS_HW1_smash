@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     char str[6]= "smash";
     smash.set_prompt(str);
     while(true) {
-        std::cout << smash.get_prompt() <<">>"; // TODO: change this (why?)
+        std::cout << smash.get_prompt() <<">"; // TODO: change this (why?)
         std::string cmd_line;
         std::getline(std::cin, cmd_line);
         smash.executeCommand(cmd_line.c_str(), smash.get_prompt());
