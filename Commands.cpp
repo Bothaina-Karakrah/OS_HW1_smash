@@ -132,7 +132,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         free_args(args, command_len);
         return new GetCurrDirCommand(cmd_line);
     }
-    else if(strcmp(cmd_s, "cd") == 0){
+    else if(strcmp(cmd_s, "cd") == 0 && command_len > 1){
         free_args(args, command_len);
         return  new ChangeDirCommand(cmd_line, &plast);
     }
@@ -716,7 +716,6 @@ void ExternalCommand::execute() {
     _removeBackgroundSign(cmdline);
     char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, NULL};
 
-    SmallShell &smallShell = smallShell.getInstance();
     pid_t pid = fork();
     //if fork failed
     if (pid < 0) {
@@ -733,20 +732,15 @@ void ExternalCommand::execute() {
     }
         //father
     else {
-        int status;
         this->set_pid(pid);
+        SmallShell &smallShell = smallShell.getInstance();
         if ((_isBackgroundComamnd(this->get_cmd_line()) == false)) {
             smallShell.set_curr_pid(pid);
             smallShell.get_job_list()->set_curr_fg_job(this, 0);
+            int status;
             if (waitpid(pid, &status, WUNTRACED) < 0 ) {
                 perror("smash error: waitpid failed");
-            }else {
-                //stopped
-                if (WIFSTOPPED(status))
-                    smallShell.get_job_list()->addJob(this, true);
             }
-            smallShell.set_curr_pid(-1);
-
         }
         else {
             smallShell.get_job_list()->addJob(this, false);
@@ -932,6 +926,7 @@ void CopyCommand::execute() {
 
         if (read_ret == -1) {
             perror("smash error: read failed");
+            break;
         } else if (read_ret == 0) {
             //we reach EOF
             break;
@@ -940,12 +935,14 @@ void CopyCommand::execute() {
         auto write_ret = write(file_out, &buf, read_ret);
         if (write_ret == -1) {
             perror("smash error: write failed");
+            break;
         }
     }
 
-    close(file_in);
-    close(file_out);
-    cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
+    if(close(file_in) < 0 || close(file_out) < 0)
+       perror("smash error: close failed");
+    else
+        cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
     free_args(args, command_len);
     return;
 }
