@@ -569,7 +569,7 @@ void ForegroundCommand::execute() {
         if (jobs->isEmpty()){
             free_args(args,command_len);
             cout << "smash error: fg: jobs list is empty" << endl;
-            //free_args(args,command_len);
+            free_args(args,command_len);
             return;
         }
         else{
