@@ -569,7 +569,7 @@ void ForegroundCommand::execute() {
         if (jobs->isEmpty()){
             free_args(args,command_len);
             cout << "smash error: fg: jobs list is empty" << endl;
-            //free_args(args,command_len);
+            free_args(args,command_len);
             return;
         }
         else{
@@ -714,7 +714,7 @@ void ExternalCommand::execute() {
     char* cmdline =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
-    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, nullptr};
+    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, NULL};
 
     SmallShell &smallShell = smallShell.getInstance();
     pid_t pid = fork();
@@ -726,7 +726,7 @@ void ExternalCommand::execute() {
     //son:
     if (pid == 0) {
         setpgrp();
-        execv("/bin/bash", (char**)argv);
+        execv("/bin/bash", argv);
         //if we here execv failed
         perror("smash error: execv failed");
         return;
