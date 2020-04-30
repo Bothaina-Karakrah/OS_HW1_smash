@@ -788,6 +788,8 @@ void RedirectionCommand::execute() {
 
     //save stdout
     int command_stdout = dup(1);
+    stdout_fd = command_stdout;
+
     if (command_stdout == -1) {
         free_args(args, command_len);
         perror("smash error: dup failed");
