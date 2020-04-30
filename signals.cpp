@@ -31,6 +31,13 @@ void ctrlZHandler(int sig_num) {
 }
 
 void ctrlCHandler(int sig_num) {
+
+    ///fix stdout to the standard one
+    if (dup2(stdout_fd, 1) == -1) {
+        perror("smash error: dup2 failed");
+    }
+
+
     // TODO: Add your implementation
     cout << "smash: got ctrl-C" << endl;
     SmallShell &smallShell = smallShell.getInstance();
