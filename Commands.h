@@ -128,12 +128,9 @@ public:
             return this->cmd;
         }
 
-        void set_cmd(Command *new_cmd,int new_job_id){
+        void set_cmd(Command *new_cmd){
             this->cmd = new_cmd;
-            this->job_id = new_job_id;
-            if(time(&init_time) == (time_t)-1){
-                perror("smash error: time failed");
-            }
+
         }
 
         void set_job_id(int new_job_id){
@@ -182,8 +179,8 @@ public:
         return &(this->curr_fg_job);
     }
 
-    void set_curr_fg_job(Command* cmd,int job_id){
-        this->curr_fg_job.set_cmd(cmd,job_id);
+    void set_curr_fg_job(Command* cmd){
+        this->curr_fg_job.set_cmd(cmd);
     }
 
 private:
