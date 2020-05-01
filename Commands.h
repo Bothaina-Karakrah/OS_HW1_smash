@@ -10,7 +10,6 @@
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 #define HISTORY_MAX_RECORDS (50)
-//this for the state of the job
 
 typedef enum{Foregroung, Background, Stopped}State;
 
@@ -55,7 +54,6 @@ public:
     void execute() override;
 };
 
-//I/o
 ///I/o
 class RedirectionCommand : public Command {
     // TODO: Add your data members
@@ -116,6 +114,7 @@ public:
         Command *cmd;
         int job_id;
         time_t init_time;
+
     public:
         JobEntry(Command *new_cmd, int new_job_id) : cmd(new_cmd), job_id(new_job_id){
             if(time(&init_time) == (time_t)-1){
@@ -149,8 +148,8 @@ public:
         time_t get_time() const{
             return this->init_time;
         }
-        
-       void set_time(time_t new_time){
+
+        void set_time(time_t new_time){
             this->init_time = new_time;
         }
     };
