@@ -512,7 +512,16 @@ void KillCommand::execute() {
         free_args(args, command_len);
         return;
     }
-    //check
+
+    //got numbers
+    //check validity of signum
+    int signum = atoi((args[1]) + 1);
+    if (signum < 1 || signum > 31){
+        cout << "smash error: kill: invalid arguments" <<endl;
+        free_args(args, command_len);
+        return;
+    }
+
 
     if (_isBackgroundComamnd(this->get_cmd_line()) == 1) {
         _removeBackgroundSign(args[2]);
@@ -526,7 +535,6 @@ void KillCommand::execute() {
         return;
     }
 
-    int signum = atoi((args[1]) + 1);
     JobsList::JobEntry* jobEntry = jobs->getJobById(job_id);
 
     if (kill(jobEntry->get_cmd()->get_pid(), signum) != 0) {
