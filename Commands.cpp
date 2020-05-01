@@ -188,9 +188,17 @@ void free_args(char* args [], int command_len){
 //////checking if a string is a number/////
 bool is_number(const std::string& s)
 {
+    int neg_flag = 0;
     std::string::const_iterator it = s.begin();
-    while (it != s.end() && std::isdigit(*it)) ++it;
-    return !s.empty() && it == s.end();
+    //check if first char is '-' meaning might be a negative number
+    if (!s.empty() && (*it == '-')){
+        it++;
+    }
+    while (it != s.end() && std::isdigit(*it)){
+        ++it;
+        neg_flag = 1;
+    }
+    return !s.empty() && it == s.end() && neg_flag == 1;
 }
 
 
@@ -494,16 +502,17 @@ void KillCommand::execute() {
 
     //check arguments_number
     if (command_len != 3 || *(args[1]) != '-'){
-        perror("smash error: kill: invalid arguments");
+        cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
     //check arguments_format
     if (!is_number(args[1]+1) || !is_number(args[2])){
-        perror("smash error: kill: invalid arguments");
+        cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
+    //check
 
     if (_isBackgroundComamnd(this->get_cmd_line()) == 1) {
         _removeBackgroundSign(args[2]);
@@ -558,12 +567,8 @@ void ForegroundCommand::execute() {
 
         //it is a number
         id = atoi(args[1]);
-        if (id <= 0 ) {
-            cerr << "smash error: fg: invalid arguments" << endl;
-            free_args(args,command_len);
-            return;
-        }
-        //job-id does not exist
+
+        //check if job-id does not exist
         if (!(jobs->is_job_exist(id))){
             cout << "smash error: fg: job-id " << id << " does not exist" << endl;
             free_args(args,command_len);
@@ -642,12 +647,8 @@ void BackgroundCommand::execute() {
         }
         //is a number
         id = atoi(args[1]);
-        if (id <= 0 ) {
-            cerr << "smash error: bg: invalid arguments" << endl;
-            free_args(args,command_len);
-            return;
-        }
-        //job-id does not exist
+
+        //check if job-id does not exist
         if (!(jobs->is_job_exist(id))){
             cout << "smash error: bg: job-id " << id << " does not exist" << endl;
             free_args(args,command_len);
