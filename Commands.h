@@ -541,6 +541,7 @@ void KillCommand::execute() {
         return;
     }
     //check arguments_format
+  /////TODO: add remove & sign before convert to integer
     if (!is_number(args[1]) || !is_number(args[2])){
         cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
@@ -603,6 +604,7 @@ void ForegroundCommand::execute() {
     //if an argument was sent
     if (command_len == 2) {
         //check format
+      /////TODO: remove & from args[1] before converting
         if (!(is_number(args[1]))) {
             perror("smash error: fg: invalid arguments");
             free_args(args,command_len);
@@ -683,6 +685,7 @@ void BackgroundCommand::execute() {
     //if an argument was sent
     if (command_len == 2) {
         //check format
+      /////TODO: remove & before convert to integr
         if (!(is_number(args[1]))) {
             perror("smash error: bg: invalid arguments");
             free_args(args,command_len);
