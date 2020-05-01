@@ -30,7 +30,7 @@ void ctrlZHandler(int sig_num) {
         smallShell.get_job_list()->addJob(smallShell.get_job_list()->get_curr_fg_job()->get_cmd() ,true);
 //        smallShell.get_job_list()->get_curr_fg_job()->get_cmd()->set_state(Stopped);
         smallShell.set_curr_pid(-1) ;
-        smallShell.get_job_list()->set_curr_fg_job(nullptr,0);
+        smallShell.get_job_list()->set_curr_fg_job(nullptr);
         cout << "smash: process " << temp << " was stopped" << endl;
     }
 }
@@ -57,7 +57,7 @@ void ctrlCHandler(int sig_num) {
             return;
         }
         smallShell.set_curr_pid(-1);
-        smallShell.get_job_list()->set_curr_fg_job(nullptr, 0);
+        smallShell.get_job_list()->set_curr_fg_job(nullptr);
         cout << "smash: process " << temp << " was killed" << endl;
     }
 
