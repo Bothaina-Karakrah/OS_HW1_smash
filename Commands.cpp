@@ -356,6 +356,15 @@ void JobsList::addJob(Command *cmd, bool isStopped) {
     int new_id = 1;
 
     if(this->jobs.size() > 0){
+        for (int i = 0; i < jobs.size(); ++i) {
+            if(jobs[i].get_cmd()->get_pid() == cmd->get_pid()){
+                time_t new_time;
+                time(&new_time);
+                jobs[i].set_time(new_time);
+                jobs[i].get_cmd()->set_state(cmd->get_state());
+                return;
+            }
+        }
         new_id += ((this->jobs).back().get_job_id());
     }
     JobEntry new_job = JobEntry(cmd,new_id);
