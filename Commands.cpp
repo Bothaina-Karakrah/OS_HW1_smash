@@ -91,8 +91,9 @@ SmallShell::SmallShell() {
 void SmallShell::set_prompt(char *new_prompt) {
     strcpy(this->shell_prompt, new_prompt);
 }
-
-
+/**
+* Creates and returns a pointer to Command class which matches the given command line (cmd_line)
+*/
 bool isBuiltInCommand(const char* cmd_s){
     return strcmp(cmd_s, "chprompt") == 0 || strcmp(cmd_s, "chprompt&") == 0 ||
            strcmp(cmd_s, "showpid") == 0 || strcmp(cmd_s, "showpid&") == 0 ||
@@ -378,7 +379,8 @@ void JobsList::addJob(Command *cmd, bool isStopped) {
     int new_id = 1;
 
     if(this->jobs.size() > 0){
-        for (int i = 0; i < jobs.size(); ++i) {
+        //check if job exist in job list
+        for (size_t i = 0; i < jobs.size(); ++i) {
             if(jobs[i].get_cmd()->get_pid() == cmd->get_pid()){
                 time_t new_time;
                 time(&new_time);
@@ -387,6 +389,7 @@ void JobsList::addJob(Command *cmd, bool isStopped) {
                 return;
             }
         }
+        //if we here, job is not in the list
         new_id += ((this->jobs).back().get_job_id());
     }
     JobEntry new_job = JobEntry(cmd,new_id);
@@ -532,13 +535,13 @@ void KillCommand::execute() {
     int command_len = _parseCommandLine(str.c_str(), args);
 
     //check arguments_number
-    if (command_len != 3 || *(args[1]) != '-'){
+    if (command_len != 3){
         cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
     //check arguments_format
-    if (!is_number(args[1]+1) || !is_number(args[2])){
+    if (!is_number(args[1]) || !is_number(args[2])){
         cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
@@ -546,7 +549,8 @@ void KillCommand::execute() {
 
     //got numbers
     //check validity of signum
-    int signum = atoi((args[1]) + 1);
+    int signum = atoi((args[1]));
+    signum = -1* signum;
     if (signum < 1 || signum > 31){
         cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
@@ -578,6 +582,7 @@ void KillCommand::execute() {
 }
 
 
+
 ///ForeGround command
 void ForegroundCommand::execute() {
     jobs->removeFinishedJobs();
@@ -599,7 +604,7 @@ void ForegroundCommand::execute() {
     if (command_len == 2) {
         //check format
         if (!(is_number(args[1]))) {
-            cout << "smash error: fg: invalid arguments" << endl;
+            perror("smash error: fg: invalid arguments");
             free_args(args,command_len);
             return;
         }
@@ -615,7 +620,7 @@ void ForegroundCommand::execute() {
         }
     }
     //check if no argument was sent, id still not updated
-    if (id == -1){
+    else if (command_len == 1){
         if (jobs->isEmpty()){
             free_args(args,command_len);
             cout << "smash error: fg: jobs list is empty" << endl;
@@ -647,6 +652,7 @@ void ForegroundCommand::execute() {
     if(waitpid(jobEntry->get_cmd()->get_pid(), &state, WUNTRACED) > 0){
         if(WIFSTOPPED(state)){
             jobEntry->get_cmd()->set_state(Stopped);
+            return;
         }
     }
     else{
@@ -655,7 +661,6 @@ void ForegroundCommand::execute() {
     }
     smallShell.set_curr_pid(-1) ;
     this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
-    jobs->removeJobById(id);
     return;
 }
 
@@ -669,7 +674,7 @@ void BackgroundCommand::execute() {
     int command_len = _parseCommandLine(str.c_str(), args);
 
     if (command_len > 2) {
-        cerr << "smash error: bg: invalid arguments" << endl;
+        perror("smash error: bg: invalid arguments");
         free_args(args,command_len);
         return;
     }
@@ -680,7 +685,7 @@ void BackgroundCommand::execute() {
     if (command_len == 2) {
         //check format
         if (!(is_number(args[1]))) {
-            cout << "smash error: bg: invalid arguments" << endl;
+            perror("smash error: bg: invalid arguments");
             free_args(args,command_len);
             return;
         }
@@ -701,11 +706,11 @@ void BackgroundCommand::execute() {
         }
     }
     //check if no argument was sent, id still not updated
-    if (id == -1) {
+    else if (command_len == 1) {
         JobsList::JobEntry *jobEntry = jobs->getLastStoppedJob(&id);
         //check if list empty || no stopped job
         if (jobEntry == NULL && id <= 0) {
-            cout << "smash error: bg: there is no stopped jobs to resume" << endl;
+            perror("smash error: bg: there is no stopped jobs to resume");
             free_args(args,command_len);
             return;
         }
@@ -714,7 +719,7 @@ void BackgroundCommand::execute() {
     free_args(args,command_len);
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
-    /////////////////
+
     if(_isBackgroundComamnd(jobEntry->get_cmd()->get_cmd_line()))
     {
         _removeBackgroundSign(jobEntry->get_cmd()->get_cmd_line());
@@ -723,6 +728,7 @@ void BackgroundCommand::execute() {
 
     if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
         perror("smash error: kill failed");
+        return;
     }
     //kill success
     jobEntry->get_cmd()->set_state(Background);
@@ -738,7 +744,7 @@ void QuitCommand::execute() {
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
-    if (command_len >= 2 && strcmp("kill",args[1]) == 0) {
+    if (command_len > 1 && strcmp("kill",args[1]) == 0) {
         jobs->print_before_quit();
         jobs->killAllJobs();
         jobs->delete_jobs_vector();
@@ -779,7 +785,6 @@ void ExternalCommand::execute() {
         this->set_pid(pid);
         SmallShell &smallShell = smallShell.getInstance();
         if (_isBackgroundComamnd(this->get_cmd_line())) {
-            ///add child or father?
             smallShell.get_job_list()->addJob(this, false);
         }
         else {
@@ -874,78 +879,55 @@ void RedirectionCommand::execute() {
 
 ///pipe
 void PipeCommand::execute() {
-    int pipe_index = string(this->get_cmd_line()).find('|');
-    bool is_stderr = this->get_cmd_line()[pipe_index + 1] && this->get_cmd_line()[pipe_index + 1] == '&';
+    string cmdLine = string(get_cmd_line());
+    int pipe_index = cmdLine.find('|');
+    bool is_stderr = cmdLine[pipe_index + 1] && this->get_cmd_line()[pipe_index + 1] == '&';
 
     SmallShell &smallShell = smallShell.getInstance();
 
-    string cmdLine = string(get_cmd_line());
     auto source = smallShell.CreateCommand(cmdLine.substr(0, pipe_index).c_str(), *prompt_);
     auto target = smallShell.CreateCommand((cmdLine.substr(pipe_index + (int) is_stderr + 1)).c_str(), *prompt_);
 
-    int Pipe[2];
-    pipe(Pipe);
+    int fd[2];
+    pipe(fd);
 
-    auto pid = fork();
+    pid_t pid = fork();
 
-    if (pid < 0){
-        perror("smash error: read failed");
+    if (pid == -1) {
+        perror("smash error: fork failed");
+        exit(1);
     }
-    else if (pid == 0) {
+
+    //source
+    if(fork() == 0){
         setpgrp();
-        if (close(Pipe[1]) == -1)
-            perror("smash error: close failed");
-        auto son_stdin = dup(0);
-        if (son_stdin == -1)
-            perror("smash error: dup failed");
-        if (dup2(Pipe[0], 0) == -1)
-            perror("smash error: dup2 failed");
+        close(fd[0]);
 
-        target->execute();
-
-        if (close(Pipe[0]) == -1 || close(son_stdin) == -1)
-            perror("smash error: close failed");
-        exit(0);
-    }
-        //father
-    else {
-        if (close(Pipe[0]) == -1)
-            perror("smash error: close failed");
-        if (is_stderr) {
-            auto father_stderr = dup(2);
-            if (father_stderr == -1)
-                perror("smash error: dup failed");
-            if (dup2(Pipe[1], 2) == -1)
-                perror("smash error: dup2 failed");
-
-            if (close(Pipe[1]) == -1)
-                perror("smash error: close failed");
-
-            source->execute();
-
-            if (dup2(father_stderr, 2) == -1)
-                perror("smash error: dup2 failed");
-            if (close(father_stderr) == -1)
-                perror("smash error: close failed");
-        } else {
-            auto father_stdout = dup(1);
-            if (father_stdout == -1)
-                perror("smash error: dup failed");
-            if (dup2(Pipe[1], 1) == -1)
-                perror("smash error: dup2 failed");
-            if (close(Pipe[1]) == -1)
-                perror("smash error: close failed");
-
-            source->execute();
-
-            if (dup2(father_stdout, 1) == -1)
-                perror("smash error: dup2 failed");
-            if (close(father_stdout) == -1)
-                perror("smash error: close failed");
+        if(!is_stderr){
+            auto source_stdout = dup(1);
+            dup2(fd[1],1);
+            close(fd[1]);
         }
-        int wstatus;
-        waitpid(pid, &wstatus, WUNTRACED);
+        //if stderr
+        else{
+            auto source_stderr = dup(2);
+            dup2(fd[1],2);
+            close(fd[1]);
+        }
     }
+
+    //target
+    if (fork() == 0) {
+        setpgrp();
+
+        auto target_stdin = dup(0);
+        dup2(fd[0],0);
+        close(fd[0]);
+        close(fd[1]);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
 }
 
 
