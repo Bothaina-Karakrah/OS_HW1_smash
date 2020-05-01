@@ -149,6 +149,10 @@ public:
         time_t get_time() const{
             return this->init_time;
         }
+        
+       void set_time(time_t new_time){
+            this->init_time = new_time;
+        }
     };
 
 
