@@ -91,6 +91,20 @@ SmallShell::SmallShell() {
 void SmallShell::set_prompt(char *new_prompt) {
     strcpy(this->shell_prompt, new_prompt);
 }
+
+
+bool isBuiltInCommand(const char* cmd_s){
+    return strcmp(cmd_s, "chprompt") == 0 || strcmp(cmd_s, "chprompt&") == 0 ||
+           strcmp(cmd_s, "showpid") == 0 || strcmp(cmd_s, "showpid&") == 0 ||
+           strcmp(cmd_s, "pwd") == 0 || strcmp(cmd_s, "pwd&") == 0 ||
+           strcmp(cmd_s, "cd") == 0 || strcmp(cmd_s, "cd&") == 0 ||
+           strcmp(cmd_s, "jobs") == 0 || strcmp(cmd_s, "jobs&") == 0 ||
+           strcmp(cmd_s, "kill") == 0 || strcmp(cmd_s, "kill&") == 0 ||
+           strcmp(cmd_s, "fg") == 0 || strcmp(cmd_s, "fg&") == 0 ||
+           strcmp(cmd_s, "bg") == 0 || strcmp(cmd_s, "bg&") == 0 ||
+           strcmp(cmd_s, "quit") == 0 || strcmp(cmd_s, "quit&") == 0;
+}
+
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
@@ -99,14 +113,21 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     char *args[COMMAND_MAX_ARGS];
     int command_len =_parseCommandLine(str.c_str(), args);
 
-
+    //copy first argument
     int len = strlen(args[0])+1;
     char cmd_s[len];
     strcpy(cmd_s, args[0]);
 
+    //cmd_line is const so copy to remove & if exists
+    char command_for_BuiltIn [strlen(cmd_line)+1];
+    strcpy(command_for_BuiltIn, cmd_line);
 
+    //check if is built-in command
+    if (isBuiltInCommand(cmd_s)) {
+        _removeBackgroundSign(command_for_BuiltIn);
+    }
 
-    if(*cmd_line == 0){
+    if(*cmd_line == 0) {
         free_args(args, command_len);
         return nullptr;
     }
@@ -119,42 +140,42 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         free_args(args, command_len);
         return new RedirectionCommand(cmd_line,&smash_prompt);
     }
-    else if(strcmp(cmd_s, "chprompt") == 0){
+    else if(strcmp(cmd_s, "chprompt") == 0 || strcmp(cmd_s, "chprompt&") == 0){
         free_args(args, command_len);
-        return new chprompt(cmd_line, &smash_prompt);
+        return new chprompt(command_for_BuiltIn, &smash_prompt);
 
     }
-    else if(strcmp(cmd_s, "showpid") == 0){
+    else if(strcmp(cmd_s, "showpid") == 0 || strcmp(cmd_s, "showpid&") == 0){
         free_args(args, command_len);
-        return new ShowPidCommand(cmd_line);
+        return new ShowPidCommand(command_for_BuiltIn);
     }
-    else if(strcmp(cmd_s, "pwd") == 0){
+    else if(strcmp(cmd_s, "pwd") == 0 || strcmp(cmd_s, "pwd&") == 0){
         free_args(args, command_len);
-        return new GetCurrDirCommand(cmd_line);
+        return new GetCurrDirCommand(command_for_BuiltIn);
     }
-    else if(strcmp(cmd_s, "cd") == 0 && command_len > 1){
+    else if((strcmp(cmd_s, "cd") == 0 || strcmp(cmd_s, "cd&") == 0) && command_len > 1){
         free_args(args, command_len);
-        return  new ChangeDirCommand(cmd_line, &plast);
+        return  new ChangeDirCommand(command_for_BuiltIn, &plast);
     }
-    else if(strcmp(cmd_s, "jobs") == 0){
+    else if(strcmp(cmd_s, "jobs") == 0 || strcmp(cmd_s, "jobs&") == 0){
         free_args(args, command_len);
-        return new JobsCommand(cmd_line, &jobslist);
+        return new JobsCommand(command_for_BuiltIn, &jobslist);
     }
-    else if (strcmp(cmd_s, "kill") == 0){
+    else if (strcmp(cmd_s, "kill") == 0 || strcmp(cmd_s, "kill&") == 0){
         free_args(args, command_len);
-        return new KillCommand(cmd_line, &jobslist);
+        return new KillCommand(command_for_BuiltIn, &jobslist);
     }
-    else if(strcmp(cmd_s, "fg") == 0){
+    else if(strcmp(cmd_s, "fg") == 0 || strcmp(cmd_s, "fg&") == 0){
         free_args(args, command_len);
-        return new ForegroundCommand(cmd_line, &jobslist);
+        return new ForegroundCommand(command_for_BuiltIn, &jobslist);
     }
-    else if(strcmp(cmd_s, "bg") == 0){
+    else if(strcmp(cmd_s, "bg") == 0 || strcmp(cmd_s, "bg&") == 0){
         free_args(args, command_len);
-        return new BackgroundCommand(cmd_line, &jobslist);
+        return new BackgroundCommand(command_for_BuiltIn, &jobslist);
     }
-    else if(strcmp(cmd_s, "quit") == 0){
+    else if(strcmp(cmd_s, "quit") == 0 || strcmp(cmd_s, "quit&") == 0){
         free_args(args, command_len);
-        return new QuitCommand(cmd_line, &jobslist);
+        return new QuitCommand(command_for_BuiltIn, &jobslist);
     }
     else if(strcmp(cmd_s,"cp") == 0){
         free_args(args, command_len);
@@ -164,6 +185,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     free_args(args, command_len);
     return new ExternalCommand(cmd_line);
 }
+
 
 void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     // TODO: Add your implementation here
