@@ -270,6 +270,7 @@ void GetCurrDirCommand::execute() {
     char cwd[1024];
     if(getcwd(cwd, sizeof(cwd)) == NULL){
         perror("smash error: getcwd failed");
+        return;
     }
     cout << cwd <<endl;
     return;
@@ -283,11 +284,15 @@ void ChangeDirCommand::execute() {
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
+    if(command_len < 2)
+        return;
+
     if (command_len > 2) {
         cerr << "smash error: cd: too many arguments" << endl;
         free_args(args, command_len);
         return;
-    } else{
+    }
+    else{
         if (strcmp(args[1], "-") == 0) {
             if (*plast == nullptr) {
                 cerr << "smash error: cd: OLDPWD not set" << endl;
@@ -299,7 +304,9 @@ void ChangeDirCommand::execute() {
                 char* new_path = (char *) malloc(sizeof(char) * 1024);
                 getcwd(new_path, 1024);
                 if (chdir(*plast) != 0) {
-                    cerr << "smash error: chdir failed" << endl;
+                    perror("smash error: chdir failed");
+                    free_args(args, command_len);
+                    return;
                 } else {
                     strcpy(*plast, new_path);
                 }
@@ -338,7 +345,6 @@ void JobsList::addJob(Command *cmd, bool isStopped) {
         cmd->set_state(Background);
     }
 
-//////////////////////fg_job
     int new_id = 1;
 
     if(this->jobs.size() > 0){
@@ -488,13 +494,13 @@ void KillCommand::execute() {
 
     //check arguments_number
     if (command_len != 3 || *(args[1]) != '-'){
-        cout << "smash error: kill: invalid arguments" << endl;
+        perror("smash error: kill: invalid arguments");
         free_args(args, command_len);
         return;
     }
     //check arguments_format
     if (!is_number(args[1]+1) || !is_number(args[2])){
-        cout << "smash error: kill: invalid arguments" << endl;
+        perror("smash error: kill: invalid arguments");
         free_args(args, command_len);
         return;
     }
@@ -569,7 +575,6 @@ void ForegroundCommand::execute() {
         if (jobs->isEmpty()){
             free_args(args,command_len);
             cout << "smash error: fg: jobs list is empty" << endl;
-            //free_args(args,command_len);
             return;
         }
         else{
@@ -583,12 +588,10 @@ void ForegroundCommand::execute() {
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << jobEntry->get_cmd()->get_pid() << endl;
 
-    if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
+    if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT) < 0){
         perror("smash error: kill failed");
         return;
     }
-
-    jobs->removeJobById(id);
 
     SmallShell &smallShell = smallShell.getInstance();
     smallShell.set_curr_pid(jobEntry->get_cmd()->get_pid()) ;
@@ -608,6 +611,7 @@ void ForegroundCommand::execute() {
     }
     smallShell.set_curr_pid(-1) ;
     this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
+    jobs->removeJobById(id);
     return;
 }
 
@@ -670,7 +674,7 @@ void BackgroundCommand::execute() {
     free_args(args,command_len);
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
-    ///////////////////////////////
+    /////////////////
     if(_isBackgroundComamnd(jobEntry->get_cmd()->get_cmd_line()))
     {
         _removeBackgroundSign(jobEntry->get_cmd()->get_cmd_line());
@@ -694,7 +698,7 @@ void QuitCommand::execute() {
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
-    if (command_len >= 2) {
+    if (command_len >= 2 && strcmp("kill",args[1]) == 0) {
         jobs->print_before_quit();
         jobs->killAllJobs();
         jobs->delete_jobs_vector();
@@ -734,16 +738,17 @@ void ExternalCommand::execute() {
     else {
         this->set_pid(pid);
         SmallShell &smallShell = smallShell.getInstance();
-        if ((_isBackgroundComamnd(this->get_cmd_line()) == false)) {
+        if (_isBackgroundComamnd(this->get_cmd_line())) {
+            ///add child or father?
+            smallShell.get_job_list()->addJob(this, false);
+        }
+        else {
             smallShell.set_curr_pid(pid);
             smallShell.get_job_list()->set_curr_fg_job(this, 0);
             int status;
             if (waitpid(pid, &status, WUNTRACED) < 0 ) {
                 perror("smash error: waitpid failed");
             }
-        }
-        else {
-            smallShell.get_job_list()->addJob(this, false);
         }
     }
     return;
@@ -823,6 +828,7 @@ void RedirectionCommand::execute() {
     if (close(file_output) == -1){
         perror("smash error: close failed");
     }
+
 
 }
 
@@ -942,7 +948,7 @@ void CopyCommand::execute() {
     }
 
     if(close(file_in) < 0 || close(file_out) < 0)
-       perror("smash error: close failed");
+        perror("smash error: close failed");
     else
         cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
     free_args(args, command_len);
