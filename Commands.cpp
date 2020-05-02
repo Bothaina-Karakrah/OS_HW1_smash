@@ -934,18 +934,24 @@ void PipeCommand::execute() {
 
 
 ///cp
-void CopyCommand::execute() {
+void CopyCommand::copy_aux() {
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
-    int file_in = open(args[1], O_RDONLY);
+    _removeBackgroundSign(args[1]);
+    string temp = string(args[1]);
+    string  source = _trim(temp);
+    int file_in = open(source.c_str(), O_RDONLY);
     if (file_in == -1) {
         perror("smash error: open failed");
         return;
     }
 
-    int file_out = open(args[2],  O_CREAT | O_TRUNC | O_WRONLY ,0644);
+    _removeBackgroundSign(args[2]);
+    string temp2 = string(args[2]);
+    string target = _trim(temp2);
+    int file_out = open(target.c_str(),  O_CREAT | O_TRUNC | O_WRONLY ,0644);
     if (file_out == -1) {
         close(file_in);
         perror("smash error: open failed");
@@ -976,5 +982,38 @@ void CopyCommand::execute() {
     else
         cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
     free_args(args, command_len);
+    return;
+}
+
+
+void CopyCommand::execute() {
+    pid_t pid = fork();
+    //if fork failed
+    if (pid < 0) {
+        perror("smash error: fork failed");
+        return;
+    }
+    //son:
+    if (pid == 0) {
+        setpgrp();
+        copy_aux();
+        return;
+    }
+        //father
+    else {
+        this->set_pid(pid);
+        SmallShell &smallShell = smallShell.getInstance();
+        if (_isBackgroundComamnd(this->get_cmd_line())) {
+            smallShell.get_job_list()->addJob(this, false);
+        }
+        else {
+            smallShell.set_curr_pid(pid);
+            smallShell.get_job_list()->set_curr_fg_job(this);
+            int status;
+            if (waitpid(pid, &status, WUNTRACED) < 0 ) {
+                perror("smash error: waitpid failed");
+            }
+        }
+    }
     return;
 }
