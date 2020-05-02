@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     }
 
     //TODO: setup sig alarm handler
-
+    stdout_fd=1;
    // char smash_prompt[1024];
  //   strcpy(smash_prompt, "smash");
 
