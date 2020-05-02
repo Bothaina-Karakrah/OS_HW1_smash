@@ -52,7 +52,7 @@ void ctrlCHandler(int sig_num) {
             perror("smash error: close failed");
         }
         if (dup2(stdout_fd_copy, STDOUT_FILENO) == -1) {
-            perror("smash error: dup2 failed from signals.cpp");
+            perror("smash error: dup2 failed");
         }
     }
 
