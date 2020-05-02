@@ -9,7 +9,7 @@
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
-#define HISTORY_MAX_RECORDS (50)
+#define PATH_MAX        4096
 
 typedef enum{Foregroung, Background, Stopped}State;
 
