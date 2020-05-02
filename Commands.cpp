@@ -541,6 +541,7 @@ void KillCommand::execute() {
         return;
     }
     //check arguments_format
+  /////TODO: add remove & sign before convert to integer
     if (!is_number(args[1]) || !is_number(args[2])){
         cout << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
@@ -603,6 +604,7 @@ void ForegroundCommand::execute() {
     //if an argument was sent
     if (command_len == 2) {
         //check format
+      /////TODO: remove & from args[1] before converting
         if (!(is_number(args[1]))) {
             perror("smash error: fg: invalid arguments");
             free_args(args,command_len);
@@ -644,7 +646,7 @@ void ForegroundCommand::execute() {
 
     SmallShell &smallShell = smallShell.getInstance();
     smallShell.set_curr_pid(jobEntry->get_cmd()->get_pid()) ;
-    this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
+    this->jobs->set_curr_fg_job(jobEntry->get_cmd());
     jobEntry->get_cmd()->set_state(Foregroung);
 
 
@@ -652,7 +654,6 @@ void ForegroundCommand::execute() {
     if(waitpid(jobEntry->get_cmd()->get_pid(), &state, WUNTRACED) > 0){
         if(WIFSTOPPED(state)){
             jobEntry->get_cmd()->set_state(Stopped);
-            return;
         }
     }
     else{
@@ -660,7 +661,7 @@ void ForegroundCommand::execute() {
         return;
     }
     smallShell.set_curr_pid(-1) ;
-    this->jobs->set_curr_fg_job(jobEntry->get_cmd(),jobEntry->get_job_id());
+    this->jobs->set_curr_fg_job(jobEntry->get_cmd());
     return;
 }
 
@@ -684,6 +685,7 @@ void BackgroundCommand::execute() {
     //if an argument was sent
     if (command_len == 2) {
         //check format
+      /////TODO: remove & before convert to integr
         if (!(is_number(args[1]))) {
             perror("smash error: bg: invalid arguments");
             free_args(args,command_len);
@@ -789,7 +791,7 @@ void ExternalCommand::execute() {
         }
         else {
             smallShell.set_curr_pid(pid);
-            smallShell.get_job_list()->set_curr_fg_job(this, 0);
+            smallShell.get_job_list()->set_curr_fg_job(this);
             int status;
             if (waitpid(pid, &status, WUNTRACED) < 0 ) {
                 perror("smash error: waitpid failed");
