@@ -242,6 +242,7 @@ public:
     CopyCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
     virtual ~CopyCommand() {}
     void execute() override;
+    void copy_aux();
 };
 
 // TODO: add more classes if needed
