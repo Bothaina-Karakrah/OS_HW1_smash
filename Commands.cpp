@@ -7,6 +7,12 @@
 #include <iomanip>
 #include <fcntl.h>
 #include "Commands.h"
+#include "common.h"
+
+///defining global variables
+int stdout_fd_copy;
+bool from_redirect;
+int new_fd_copy;
 
 using namespace std;
 
@@ -856,13 +862,16 @@ void RedirectionCommand::execute() {
 
     //save standard stdout
     int stdout_copy = dup (STDOUT_FILENO);
-    stdout_fd = stdout_copy;
 
     if (stdout_copy == -1) {
         free_args(args, command_len);
         perror("smash error: dup failed");
         return;
     }
+    //save to global variables
+    stdout_fd_copy = stdout_copy;
+    from_redirect = true;
+  //  stdout_fd = stdout_copy;
 
     //close STDOUT_FILENO
     if (close(STDOUT_FILENO)<0){
@@ -892,10 +901,13 @@ void RedirectionCommand::execute() {
             return;
         }
     }
+    //save to global variable
+    new_fd_copy = new_fd;
 
     SmallShell &smallShell = smallShell.getInstance();
     string cmdLine = string(get_cmd_line());
     Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+
 
     //redirection is assigned to fd = 1 where the given file is opened
     command->execute();

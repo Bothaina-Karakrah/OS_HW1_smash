@@ -15,7 +15,7 @@ typedef enum{Foregroung, Background, Stopped}State;
 
 bool is_number(const std::string& s);
 void free_args(char* args [], int command_length);
-static int stdout_fd;
+
 
 ///Command///
 class Command {
