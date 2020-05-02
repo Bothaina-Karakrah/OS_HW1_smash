@@ -110,6 +110,8 @@ bool isBuiltInCommand(const char* cmd_s){
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
+    this->copy_command = false;
+
     string str = string(cmd_line,strlen(cmd_line)+1);
     char *args[COMMAND_MAX_ARGS];
     int command_len =_parseCommandLine(str.c_str(), args);
@@ -179,6 +181,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         return new QuitCommand(command_for_BuiltIn, &jobslist);
     }
     else if(strcmp(cmd_s,"cp") == 0){
+        this->copy_command = true;
         free_args(args, command_len);
         return new CopyCommand(cmd_line);
     }
@@ -194,7 +197,40 @@ void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     if(cmd == nullptr) {
         return;
     }
-    cmd->execute();
+    if(this->copy_command){
+        pid_t pid = fork();
+        //if fork failed
+        if (pid < 0) {
+            perror("smash error: fork failed");
+            return;
+        }
+        //son:
+        if (pid == 0) {
+            setpgrp();
+            cmd->execute();
+            return;
+        }
+            //father
+        else {
+            cmd->set_pid(pid);
+            SmallShell &smallShell = smallShell.getInstance();
+            if (_isBackgroundComamnd(cmd->get_cmd_line())) {
+                smallShell.get_job_list()->addJob(cmd, false);
+            }
+            else {
+                smallShell.set_curr_pid(pid);
+                smallShell.get_job_list()->set_curr_fg_job(cmd);
+                int status;
+                if (waitpid(pid, &status, WUNTRACED) < 0 ) {
+                    perror("smash error: waitpid failed");
+                }
+            }
+        }
+        return;
+    }
+    else{
+        cmd->execute();
+    }
     this->set_prompt(cmd->get_command_prompt());
 }
 
@@ -901,21 +937,26 @@ void PipeCommand::execute() {
     }
 
     //source
-    if(fork() == 0){
-        setpgrp();
-        close(fd[0]);
+    if(strcmp(source->get_cmd_line(), "showpid")){
+        if(fork() == 0){
+            setpgrp();
+            close(fd[0]);
 
-        if(!is_stderr){
-            auto source_stdout = dup(1);
-            dup2(fd[1],1);
-            close(fd[1]);
+            if(!is_stderr){
+                auto source_stdout = dup(1);
+                dup2(fd[1],1);
+                close(fd[1]);
+            }
+                //if stderr
+            else{
+                auto source_stderr = dup(2);
+                dup2(fd[1],2);
+                close(fd[1]);
+            }
         }
-        //if stderr
-        else{
-            auto source_stderr = dup(2);
-            dup2(fd[1],2);
-            close(fd[1]);
-        }
+    }
+    else{
+        source->execute();
     }
 
     //target
@@ -934,7 +975,7 @@ void PipeCommand::execute() {
 
 
 ///cp
-void CopyCommand::copy_aux() {
+void CopyCommand::execute() {
     string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
@@ -982,38 +1023,5 @@ void CopyCommand::copy_aux() {
     else
         cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
     free_args(args, command_len);
-    return;
-}
-
-
-void CopyCommand::execute() {
-    pid_t pid = fork();
-    //if fork failed
-    if (pid < 0) {
-        perror("smash error: fork failed");
-        return;
-    }
-    //son:
-    if (pid == 0) {
-        setpgrp();
-        copy_aux();
-        return;
-    }
-        //father
-    else {
-        this->set_pid(pid);
-        SmallShell &smallShell = smallShell.getInstance();
-        if (_isBackgroundComamnd(this->get_cmd_line())) {
-            smallShell.get_job_list()->addJob(this, false);
-        }
-        else {
-            smallShell.set_curr_pid(pid);
-            smallShell.get_job_list()->set_curr_fg_job(this);
-            int status;
-            if (waitpid(pid, &status, WUNTRACED) < 0 ) {
-                perror("smash error: waitpid failed");
-            }
-        }
-    }
     return;
 }
