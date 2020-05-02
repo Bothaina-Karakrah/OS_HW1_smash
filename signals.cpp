@@ -11,13 +11,13 @@ void ctrlZHandler(int sig_num) {
 
     ///fix stdout to the standard one.
     if (from_redirect == true) {
+        from_redirect = false;
         if (close(new_fd_copy) < 0) {
             perror("smash error: close failed");
         }
         if (dup2(stdout_fd_copy, STDOUT_FILENO) == -1) {
             perror("smash error: dup2 failed");
         }
-        from_redirect = false;
     }
 
     // TODO: Add your implementation
@@ -47,13 +47,13 @@ void ctrlCHandler(int sig_num) {
 
     ///fix stdout to the standard one.
     if (from_redirect == true) {
+        from_redirect = false;
         if (close(new_fd_copy) < 0) {
             perror("smash error: close failed");
         }
         if (dup2(stdout_fd_copy, STDOUT_FILENO) == -1) {
-            perror("smash error: dup2 failed");
+            perror("smash error: dup2 failed from signals.cpp");
         }
-        from_redirect = false;
     }
 
 

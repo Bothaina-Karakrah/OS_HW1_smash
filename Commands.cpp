@@ -11,7 +11,7 @@
 
 ///defining global variables
 int stdout_fd_copy;
-bool from_redirect;
+bool from_redirect=false;
 int new_fd_copy;
 
 using namespace std;
@@ -911,6 +911,8 @@ void RedirectionCommand::execute() {
 
     //redirection is assigned to fd = 1 where the given file is opened
     command->execute();
+
+    from_redirect = false;
 
     if (close(new_fd) < 0){
         free_args(args, command_len);
