@@ -136,7 +136,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
     }
     else if(str.find("|") != string::npos){
         free_args(args, command_len);
-        return  new PipeCommand(cmd_line, &smash_prompt);
+        return  new PipeCommand(cmd_line, &smash_prompt, getpid());
     }
     else if(str.find(">") != string::npos)
     {
@@ -934,94 +934,117 @@ void PipeCommand::execute() {
     if (pid == -1) {
         perror("smash error: fork failed");
         exit(1);
+    } else if (pid == 0) {
+        setpgrp();
+        if (close(fd[1]) == -1)
+            perror("smash error: close failed");
+        auto son_stdin = dup(0);
+        if (son_stdin == -1)
+            perror("smash error: dup failed");
+        if (dup2(fd[0], 0) == -1)
+            perror("smash error: dup2 failed");
+
+        if(string(target->get_cmd_line()).find("showpid") != std::string::npos){
+            cout << "smash pid is " << this->s_pid << endl;
+        }
+        else{
+            target->execute();
+        }
+        if (close(fd[0]) == -1 || close(son_stdin) == -1)
+            perror("smash error: close failed");
+        exit(0);
     }
+        //father
+    else {
+        if (close(fd[0]) == -1)
+            perror("smash error: close failed");
+        if (is_stderr) {
+            auto father_stderr = dup(2);
+            if (father_stderr == -1)
+                perror("smash error: dup failed");
+            if (dup2(fd[1], 2) == -1)
+                perror("smash error: dup2 failed");
 
-    //source
-    if(strcmp(source->get_cmd_line(), "showpid")){
-        if(fork() == 0){
-            setpgrp();
-            close(fd[0]);
+            if (close(fd[1]) == -1)
+                perror("smash error: close failed");
 
-            if(!is_stderr){
-                auto source_stdout = dup(1);
-                dup2(fd[1],1);
-                close(fd[1]);
-            }
-                //if stderr
-            else{
-                auto source_stderr = dup(2);
-                dup2(fd[1],2);
-                close(fd[1]);
-            }
+            source->execute();
+
+            if (dup2(father_stderr, 2) == -1)
+                perror("smash error: dup2 failed");
+            if (close(father_stderr) == -1)
+                perror("smash error: close failed");
+        } else {
+            auto father_stdout = dup(1);
+            if (father_stdout == -1)
+                perror("smash error: dup failed");
+            if (dup2(fd[1], 1) == -1)
+                perror("smash error: dup2 failed");
+            if (close(fd[1]) == -1)
+                perror("smash error: close failed");
+
+            source->execute();
+
+            if (dup2(father_stdout, 1) == -1)
+                perror("smash error: dup2 failed");
+            if (close(father_stdout) == -1)
+                perror("smash error: close failed");
+        }
+            int wstatus;
+            waitpid(pid, &wstatus, WUNTRACED);
         }
     }
-    else{
-        source->execute();
-    }
 
-    //target
-    if (fork() == 0) {
-        setpgrp();
-
-        auto target_stdin = dup(0);
-        dup2(fd[0],0);
-        close(fd[0]);
-        close(fd[1]);
-    }
-
-    close(fd[0]);
-    close(fd[1]);
-}
 
 
 ///cp
-void CopyCommand::execute() {
-    string str = string(this->get_cmd_line(),strlen(this->get_cmd_line())+1);
-    char *args[COMMAND_MAX_ARGS];
-    int command_len = _parseCommandLine(str.c_str(), args);
+    void CopyCommand::execute() {
+        string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
+        char *args[COMMAND_MAX_ARGS];
+        int command_len = _parseCommandLine(str.c_str(), args);
 
-    _removeBackgroundSign(args[1]);
-    string temp = string(args[1]);
-    string  source = _trim(temp);
-    int file_in = open(source.c_str(), O_RDONLY);
-    if (file_in == -1) {
-        perror("smash error: open failed");
-        return;
-    }
-
-    _removeBackgroundSign(args[2]);
-    string temp2 = string(args[2]);
-    string target = _trim(temp2);
-    int file_out = open(target.c_str(),  O_CREAT | O_TRUNC | O_WRONLY ,0644);
-    if (file_out == -1) {
-        close(file_in);
-        perror("smash error: open failed");
-        return;
-    }
-
-    char buf[1024];
-    while (true) {
-        auto read_ret = read(file_in, &buf, 1024);
-
-        if (read_ret == -1) {
-            perror("smash error: read failed");
-            break;
-        } else if (read_ret == 0) {
-            //we reach EOF
-            break;
+        _removeBackgroundSign(args[1]);
+        string temp = string(args[1]);
+        string source = _trim(temp);
+        int file_in = open(source.c_str(), O_RDONLY);
+        if (file_in == -1) {
+            perror("smash error: open failed");
+            return;
         }
 
-        auto write_ret = write(file_out, &buf, read_ret);
-        if (write_ret == -1) {
-            perror("smash error: write failed");
-            break;
+        _removeBackgroundSign(args[2]);
+        string temp2 = string(args[2]);
+        string target = _trim(temp2);
+        int file_out = open(target.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+        if (file_out == -1) {
+            close(file_in);
+            perror("smash error: open failed");
+            return;
         }
-    }
 
-    if(close(file_in) < 0 || close(file_out) < 0)
-        perror("smash error: close failed");
-    else
-        cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
-    free_args(args, command_len);
-    return;
-}
+        char buf[1024];
+        while (true) {
+            auto read_ret = read(file_in, &buf, 1024);
+
+            if (read_ret == -1) {
+                perror("smash error: read failed");
+                break;
+            } else if (read_ret == 0) {
+                //we reach EOF
+                break;
+            }
+
+            auto write_ret = write(file_out, &buf, read_ret);
+            if (write_ret == -1) {
+                perror("smash error: write failed");
+                break;
+            }
+        }
+
+        if (close(file_in) < 0 || close(file_out) < 0)
+            perror("smash error: close failed");
+        else
+            cout << "smash: " << args[1] << " was copied to " << args[2] << endl;
+        free_args(args, command_len);
+        return;
+    }
