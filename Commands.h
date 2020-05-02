@@ -73,9 +73,10 @@ public:
 class PipeCommand : public Command {
     // TODO: Add your data members
     char** prompt_;
+    pid_t s_pid;
 
 public:
-    PipeCommand(const char* cmd_line, char** prompt) : Command(cmd_line), prompt_(prompt) {};
+    PipeCommand(const char* cmd_line, char** prompt, pid_t smash_pid) : Command(cmd_line), prompt_(prompt) ,s_pid(smash_pid){};
     virtual ~PipeCommand() {}
     void execute() override;
 };
@@ -268,6 +269,7 @@ private:
     char * plast;
     pid_t curr_pid;
     char shell_prompt[1024];
+    bool copy_command;
     SmallShell();
 
 public:
@@ -304,6 +306,7 @@ public:
     char* get_prompt(){
         return this->shell_prompt;
     }
+
 };
 
 #endif //SMASH_COMMAND_H_
