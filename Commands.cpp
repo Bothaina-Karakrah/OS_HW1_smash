@@ -828,114 +828,86 @@ void RedirectionCommand::execute() {
         is_append = true;
     }
 
-    //fork
-    pid_t pid = fork();
-    //if fork failed
-    if (pid < 0) {
-        perror("smash error: fork failed");
+
+
+
+
+    ///the implement of redirection command:
+
+    //save standard stdout
+    int stdout_copy = dup(STDOUT_FILENO);
+
+    if (stdout_copy == -1) {
+        free_args(args, command_len);
+        perror("smash error: dup failed");
+        return;
+    }
+    //save to global variables
+    stdout_fd_copy = stdout_copy;
+    from_redirect = true;
+    //  stdout_fd = stdout_copy;
+
+    //close STDOUT_FILENO
+    if (close(STDOUT_FILENO) < 0) {
+        free_args(args, command_len);
+        perror("smash error: close failed");
         return;
     }
 
-    //son:
-    if (pid == 0) {
-        setpgrp();
+    int new_fd;
 
-        ///the implement of redirection command:
-
-        //save standard stdout
-        int stdout_copy = dup (STDOUT_FILENO);
-
-        if (stdout_copy == -1) {
+    //check if not is_append -> need to override
+    if (!is_append) {
+        //enable create if does not exist + override if exists
+        new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+        if (new_fd == -1) {
             free_args(args, command_len);
-            perror("smash error: dup failed");
+            perror("smash error: open failed");
             return;
         }
-        //save to global variables
-        stdout_fd_copy = stdout_copy;
-        from_redirect = true;
-        //  stdout_fd = stdout_copy;
-
-        //close STDOUT_FILENO
-        if (close(STDOUT_FILENO)<0){
+    } else {
+        //enable create if not exists + append if exists
+        new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY, 0644);
+        if (new_fd == -1) {
             free_args(args, command_len);
-            perror("smash error: close failed");
+            perror("smash error: open failed");
             return;
         }
+    }
+    //save to global variable
+    new_fd_copy = new_fd;
 
-        int new_fd;
-
-        //check if not is_append -> need to override
-        if (!is_append) {
-            //enable create if does not exist + override if exists
-            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC,0644);
-            if (new_fd == -1) {
-                free_args(args, command_len);
-                perror("smash error: open failed");
-                return;
-            }
-        }
-        else {
-            //enable create if not exists + append if exists
-            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY , 0644);
-            if (new_fd == -1) {
-                free_args(args, command_len);
-                perror("smash error: open failed");
-                return;
-            }
-        }
-        //save to global variable
-        new_fd_copy = new_fd;
-
-        SmallShell &smallShell = smallShell.getInstance();
-        string cmdLine = string(get_cmd_line());
-        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+    SmallShell &smallShell = smallShell.getInstance();
+    string cmdLine = string(get_cmd_line());
+    Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
 
 
-        //redirection is assigned to fd = 1 where the given file is opened
-        command->execute();
+    //redirection is assigned to fd = 1 where the given file is opened
+    command->execute();
 
-        from_redirect = false;
+    from_redirect = false;
 
-        if (close(new_fd) < 0){
-            free_args(args, command_len);
-            perror("smash error: close failed");
-            return;
-        }
-
-        if (dup2(stdout_copy, STDOUT_FILENO) < 0){
-            free_args(args, command_len);
-            perror("smash error: dup2 failed");
-            return;
-        }
-
+    if (close(new_fd) < 0) {
         free_args(args, command_len);
-        if (close(stdout_copy) < 0){
-            perror("smash error: close failed");
-            return;
-        }
-        //end of son
-        exit(1);
+        perror("smash error: close failed");
+        return;
     }
 
-    //father
-    else {
-        this->set_pid(pid);
-        SmallShell &smallShell = smallShell.getInstance();
-        if (_isBackgroundComamnd(this->get_cmd_line())) {
-            smallShell.get_job_list()->addJob(this, false);
-        }
-        else {
-            smallShell.set_curr_pid(pid);
-            smallShell.get_job_list()->set_curr_fg_job(this);
-            int status;
-            if (waitpid(pid, &status, WUNTRACED) < 0 ) {
-                perror("smash error: waitpid failed");
-            }
-        }
+    if (dup2(stdout_copy, STDOUT_FILENO) < 0) {
+        free_args(args, command_len);
+        perror("smash error: dup2 failed");
+        return;
     }
+
+    free_args(args, command_len);
+    if (close(stdout_copy) < 0) {
+        perror("smash error: close failed");
+        return;
+    }
+
     return;
-}
 
+}
 
 
 ///pipe
@@ -1057,7 +1029,7 @@ void PipeCommand::execute() {
 
 
 ///cp
-void CopyCommand::copy_aux(int file_in, int file_out, string source, string target) {
+void CopyCommand::copy_aux(string source, string target) {
     /*
     string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
     str = _trim(str);
@@ -1118,6 +1090,22 @@ void CopyCommand::copy_aux(int file_in, int file_out, string source, string targ
 */
 
 
+
+
+    ///if got here then not the same path
+    int file_in = open(source.c_str(), O_RDONLY);
+    if (file_in == -1) {
+        perror("smash error: open failed");
+        return;
+    }
+
+    int file_out = open(target.c_str(), O_WRONLY | O_CREAT | O_TRUNC,0644);
+    if (file_out == -1) {
+        close(file_in);
+        perror("smash error: open failed");
+        return;
+    }
+
     char buf[256];
 
     int read_res = read(file_in, buf, 256);
@@ -1170,54 +1158,38 @@ void CopyCommand::execute() {
     _removeBackgroundSign(args[1]);
     string temp = string(args[1]);
     string source = _trim(temp);
-    int file_in = open(source.c_str(), O_RDONLY);
-    if (file_in == -1) {
-        perror("smash error: open failed");
-        return;
-    }
+
 
     _removeBackgroundSign(args[2]);
     string temp2 = string(args[2]);
     string target = _trim(temp2);
-    int file_out = open(target.c_str(), O_WRONLY | O_CREAT | O_TRUNC,0644);
-    if (file_out == -1) {
-        close(file_in);
-        perror("smash error: open failed");
-        return;
-    }
+
 
 
     ///check if same path - meaning same file///
     char buf_s[PATH_MAX];
     char *res_s = realpath (source.c_str(),buf_s);
-    if (!res_s){
-        close(file_in);
-        close(file_out);
-        perror("smash error: realpath failed");
-        return;
-    }
 
-   // cout<<"first realpath of source is:   " << buf_s << endl;
+    // cout<<"first realpath of source is:   " << buf_s << endl;
 
     char buf_t[PATH_MAX];
     char *res_t = realpath (target.c_str(),buf_t);
-    if (!res_t){
-        close(file_in);
-        close(file_out);
-        perror("smash error: realpath failed");
-        return;
-    }
 
-  //  cout<<"first realpath of target is:   " << buf_t << endl;
 
-    if(strcmp(buf_s,buf_t) == 0) {
-       // cout << "same path files = same file " <<endl;
-        cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
-        close(file_in);
-        close(file_out);
-        return;
+    //  cout<<"first realpath of target is:   " << buf_t << endl;
+
+    if (res_s && res_t) {
+        if (strcmp(buf_s, buf_t) == 0) {
+            // cout << "same path files = same file " <<endl;
+            cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
+            return;
+        }
     }
     ///end from aux///
+
+
+
+
 
 
     pid_t pid = fork();
@@ -1229,7 +1201,7 @@ void CopyCommand::execute() {
     //son:
     if (pid == 0) {
         setpgrp();
-        copy_aux(file_in,file_out,source,target);
+        copy_aux(source,target);
         exit(1);
     }
         //father
