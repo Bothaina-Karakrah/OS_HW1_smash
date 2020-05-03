@@ -269,7 +269,6 @@ private:
     char * plast;
     pid_t curr_pid;
     char shell_prompt[1024];
-    bool copy_command;
     SmallShell();
 
 public:
