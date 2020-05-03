@@ -116,7 +116,6 @@ bool isBuiltInCommand(const char* cmd_s){
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
-    this->copy_command = false;
 
     string str = string(cmd_line,strlen(cmd_line)+1);
     char *args[COMMAND_MAX_ARGS];
@@ -187,7 +186,6 @@ Command * SmallShell::CreateCommand(const char* cmd_line, char* smash_prompt) {
         return new QuitCommand(command_for_BuiltIn, &jobslist);
     }
     else if(strcmp(cmd_s,"cp") == 0){
-        this->copy_command = true;
         free_args(args, command_len);
         return new CopyCommand(cmd_line);
     }
@@ -203,40 +201,9 @@ void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     if(cmd == nullptr) {
         return;
     }
-    if(this->copy_command){
-        pid_t pid = fork();
-        //if fork failed
-        if (pid < 0) {
-            perror("smash error: fork failed");
-            return;
-        }
-        //son:
-        if (pid == 0) {
-            setpgrp();
-            cmd->execute();
-            exit(1);
-        }
-            //father
-        else {
-            cmd->set_pid(pid);
-            SmallShell &smallShell = smallShell.getInstance();
-            if (_isBackgroundComamnd(cmd->get_cmd_line())) {
-                smallShell.get_job_list()->addJob(cmd, false);
-            }
-            else {
-                smallShell.set_curr_pid(pid);
-                smallShell.get_job_list()->set_curr_fg_job(cmd);
-                int status;
-                if (waitpid(pid, &status, WUNTRACED) < 0 ) {
-                    perror("smash error: waitpid failed");
-                }
-            }
-        }
-        return;
-    }
-    else{
-        cmd->execute();
-    }
+
+    cmd->execute();
+
     this->set_prompt(cmd->get_command_prompt());
 }
 
@@ -1028,9 +995,7 @@ void PipeCommand::execute() {
                     execv("/bin/bash", argv);
                 }
             }
-            if (waitpid(pid, NULL, WUNTRACED) < 0 ) {
-                perror("smash error: waitpid failed");
-            }
+            wait(NULL);
         }
         exit(1);
     }
@@ -1056,9 +1021,7 @@ void PipeCommand::execute() {
 
 
 ///cp
-void CopyCommand::execute() {
-
-
+void CopyCommand::copy_aux() {
     string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
     str = _trim(str);
     char *args[COMMAND_MAX_ARGS];
@@ -1080,7 +1043,7 @@ void CopyCommand::execute() {
     _removeBackgroundSign(args[2]);
     string temp2 = string(args[2]);
     string target = _trim(temp2);
-    int file_out = open(target.c_str(), O_WRONLY | O_CREAT | O_TRUNC,0644, 0664);
+    int file_out = open(target.c_str(), O_WRONLY | O_CREAT | O_TRUNC,0644);
     if (file_out == -1) {
         close(file_in);
         perror("smash error: open failed");
@@ -1122,4 +1085,37 @@ void CopyCommand::execute() {
     cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
     close(file_in);
     close(file_out);
+}
+
+void CopyCommand::execute() {
+
+    pid_t pid = fork();
+    //if fork failed
+    if (pid < 0) {
+        perror("smash error: fork failed");
+        return;
+    }
+    //son:
+    if (pid == 0) {
+        setpgrp();
+        copy_aux();
+        exit(1);
+    }
+        //father
+    else {
+        this->set_pid(pid);
+        SmallShell &smallShell = smallShell.getInstance();
+        if (_isBackgroundComamnd(this->get_cmd_line())) {
+            smallShell.get_job_list()->addJob(this, false);
+        }
+        else {
+            smallShell.set_curr_pid(pid);
+            smallShell.get_job_list()->set_curr_fg_job(this);
+            int status;
+            if (waitpid(pid, &status, WUNTRACED) < 0 ) {
+                perror("smash error: waitpid failed");
+            }
+        }
+    }
+    return;
 }
