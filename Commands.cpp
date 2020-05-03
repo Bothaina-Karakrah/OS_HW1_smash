@@ -203,9 +203,6 @@ void SmallShell::executeCommand(const char *cmd_line, char* smash_prompt) {
     if(cmd == nullptr) {
         return;
     }
-    ////////////////////////////
-    cmd->execute();
-
     if(this->copy_command){
         pid_t pid = fork();
         //if fork failed
@@ -1087,29 +1084,6 @@ void CopyCommand::execute() {
     if (file_out == -1) {
         close(file_in);
         perror("smash error: open failed");
-        return;
-    }
-
-    char real_source_name[PATH_MAX];
-    realpath(source.c_str(), real_source_name);
-    if(real_source_name == nullptr){
-        perror("smash error: open failed");
-        close(file_in);
-        close(file_out);
-        return;
-    }
-
-    char real_target_name[PATH_MAX];
-    realpath(target.c_str(), real_target_name);
-    if(real_target_name == nullptr){
-        perror("smash error: open failed");
-        close(file_in);
-        close(file_out);
-        return;
-    }
-
-    if(!strcmp(real_source_name, real_target_name) || file_in == file_out){
-        cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
         return;
     }
 
