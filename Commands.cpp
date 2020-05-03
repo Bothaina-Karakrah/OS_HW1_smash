@@ -1050,6 +1050,37 @@ void CopyCommand::copy_aux() {
         return;
     }
 
+
+    ///check if same path - meaning same file///
+    char buf_s[PATH_MAX];
+    char *res_s = realpath (source.c_str(),buf_s);
+    if (!res_s){
+        close(file_in);
+        close(file_out);
+        perror("smash error: realpath failed");
+        return;
+    }
+
+    char buf_t[PATH_MAX];
+    char *res_t = realpath (target.c_str(),buf_t);
+    if (!res_t){
+        close(file_in);
+        close(file_out);
+        perror("smash error: realpath failed");
+        return;
+    }
+
+    if(strcmp(buf_s,buf_t) == 0) {
+        cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
+        close(file_in);
+        close(file_out);
+        return;
+    }
+
+    /////////////////////////////////////////////////////////
+
+
+
     char buf[256];
 
     int read_res = read(file_in, buf, 256);
