@@ -828,79 +828,115 @@ void RedirectionCommand::execute() {
         is_append = true;
     }
 
-    //save standard stdout
-    int stdout_copy = dup (STDOUT_FILENO);
-
-    if (stdout_copy == -1) {
-        free_args(args, command_len);
-        perror("smash error: dup failed");
-        return;
-    }
-    //save to global variables
-    stdout_fd_copy = stdout_copy;
-    from_redirect = true;
-    //  stdout_fd = stdout_copy;
-
-    //close STDOUT_FILENO
-    if (close(STDOUT_FILENO)<0){
-        free_args(args, command_len);
-        perror("smash error: close failed");
+    //fork
+    pid_t pid = fork();
+    //if fork failed
+    if (pid < 0) {
+        perror("smash error: fork failed");
         return;
     }
 
-    int new_fd;
+    //son:
+    if (pid == 0) {
+        setpgrp();
 
-    //check if not is_append -> need to override
-    if (!is_append) {
-        //enable create if does not exist + override if exists
-        new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC,0644);
-        if (new_fd == -1) {
+        ///the implement of redirection command:
+
+        //save standard stdout
+        int stdout_copy = dup (STDOUT_FILENO);
+
+        if (stdout_copy == -1) {
             free_args(args, command_len);
-            perror("smash error: open failed");
+            perror("smash error: dup failed");
             return;
         }
+        //save to global variables
+        stdout_fd_copy = stdout_copy;
+        from_redirect = true;
+        //  stdout_fd = stdout_copy;
+
+        //close STDOUT_FILENO
+        if (close(STDOUT_FILENO)<0){
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        int new_fd;
+
+        //check if not is_append -> need to override
+        if (!is_append) {
+            //enable create if does not exist + override if exists
+            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC,0644);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        }
+        else {
+            //enable create if not exists + append if exists
+            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY , 0644);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        }
+        //save to global variable
+        new_fd_copy = new_fd;
+
+        SmallShell &smallShell = smallShell.getInstance();
+        string cmdLine = string(get_cmd_line());
+        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+
+
+        //redirection is assigned to fd = 1 where the given file is opened
+        command->execute();
+
+        from_redirect = false;
+
+        if (close(new_fd) < 0){
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        if (dup2(stdout_copy, STDOUT_FILENO) < 0){
+            free_args(args, command_len);
+            perror("smash error: dup2 failed");
+            return;
+        }
+
+        free_args(args, command_len);
+        if (close(stdout_copy) < 0){
+            perror("smash error: close failed");
+            return;
+        }
+        //end of son
+        exit(1);
     }
+
+    //father
     else {
-        //enable create if not exists + append if exists
-        new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY , 0644);
-        if (new_fd == -1) {
-            free_args(args, command_len);
-            perror("smash error: open failed");
-            return;
+        this->set_pid(pid);
+        SmallShell &smallShell = smallShell.getInstance();
+        if (_isBackgroundComamnd(this->get_cmd_line())) {
+            smallShell.get_job_list()->addJob(this, false);
+        }
+        else {
+            smallShell.set_curr_pid(pid);
+            smallShell.get_job_list()->set_curr_fg_job(this);
+            int status;
+            if (waitpid(pid, &status, WUNTRACED) < 0 ) {
+                perror("smash error: waitpid failed");
+            }
         }
     }
-    //save to global variable
-    new_fd_copy = new_fd;
-
-    SmallShell &smallShell = smallShell.getInstance();
-    string cmdLine = string(get_cmd_line());
-    Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
-
-
-    //redirection is assigned to fd = 1 where the given file is opened
-    command->execute();
-
-    from_redirect = false;
-
-    if (close(new_fd) < 0){
-        free_args(args, command_len);
-        perror("smash error: close failed");
-        return;
-    }
-
-    if (dup2(stdout_copy, STDOUT_FILENO) < 0){
-        free_args(args, command_len);
-        perror("smash error: dup2 failed");
-        return;
-    }
-
-    free_args(args, command_len);
-    if (close(stdout_copy) < 0){
-        perror("smash error: close failed");
-        return;
-    }
-
+    return;
 }
+
+
 
 ///pipe
 void PipeCommand::execute() {
@@ -1027,7 +1063,7 @@ void CopyCommand::copy_aux() {
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
-    if(command_len != 3){
+    if(command_len < 3){
         return;
     }
 
