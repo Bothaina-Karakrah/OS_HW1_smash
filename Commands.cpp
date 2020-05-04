@@ -945,6 +945,7 @@ void PipeCommand::execute() {
         }
         //son - target command
         else if(pid_target == 0){
+          setgrp();
             dup2(fd[0], 0);
             close(fd[0]);
             close(fd[1]);
@@ -980,7 +981,8 @@ void PipeCommand::execute() {
                 execv("/bin/bash", argv);
             }
 
-            waitpid(pid_target, nullptr, 0);
+            int wstatus;
+        waitpid(pid_target, &wstatus, WUNTRACED);
         }
 
        exit(1);
