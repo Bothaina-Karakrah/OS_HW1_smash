@@ -929,7 +929,7 @@ void PipeCommand::execute() {
 
     if(pipe_fork < 0){
         perror("smash error: fork failed");
-        return;
+       return;
     }
     else if(pipe_fork == 0) {
         setpgrp();
@@ -980,9 +980,7 @@ void PipeCommand::execute() {
                 execv("/bin/bash", argv);
             }
 
-            waitpid(pid_target, NULL, WUNTRACED);
-            exit(1);
-
+            waitpid(pid_target, NULL, WUNTRACED)
         }
 
        exit(1);
