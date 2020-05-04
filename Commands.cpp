@@ -790,7 +790,7 @@ void ExternalCommand::execute() {
         execv("/bin/bash", argv);
         //if we here execv failed
         perror("smash error: execv failed");
-        return;
+        exit(1);
     }
         //father
     else {
@@ -955,6 +955,7 @@ void PipeCommand::execute() {
 
             if(string(target->get_cmd_line()).find("showpid") != std::string::npos){
                 cout << "smash pid is " << this->s_pid << endl;
+                exit(1);
             }
             else if(isBuiltInCommand(target->get_cmd_line()) || string(target->get_cmd_line()).find("cp") != std::string::npos){
                 target->execute();
@@ -979,6 +980,7 @@ void PipeCommand::execute() {
 
                 if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
                     cerr << "smash pid is " << this->s_pid << endl;
+                    exit(1);
                 }
                 else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
                     source->execute();
@@ -995,6 +997,7 @@ void PipeCommand::execute() {
 
                 if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
                     cout << "smash pid is " << this->s_pid << endl;
+                    exit(1);
                 }
                 else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
                     source->execute();
@@ -1003,7 +1006,7 @@ void PipeCommand::execute() {
                     execv("/bin/bash", argv);
                 }
             }
-            wait(NULL);
+            waitpid(pid, NULL, WUNTRACED);
         }
         exit(1);
     }
@@ -1186,11 +1189,6 @@ void CopyCommand::execute() {
         }
     }
     ///end from aux///
-
-
-
-
-
 
     pid_t pid = fork();
     //if fork failed
