@@ -946,6 +946,7 @@ void PipeCommand::execute() {
         //son - target command
         else if(pid_target == 0){
           setgrp();
+          dup(0);
             dup2(fd[0], 0);
             close(fd[0]);
             close(fd[1]);
@@ -965,7 +966,8 @@ void PipeCommand::execute() {
         //father process
         else{
             is_stderr += 1;
-
+            
+            dup(is_stderr);
             dup2(fd[1],is_stderr);
             close(fd[0]);
             close(fd[1]);
@@ -981,10 +983,9 @@ void PipeCommand::execute() {
                 execv("/bin/bash", argv);
             }
 
-            int wstatus;
-        waitpid(pid_target, &wstatus, WUNTRACED);
         }
-
+        int wstatus;
+        waitpid(pid_target, &wstatus, WUNTRACED);
        exit(1);
     }
     //father
