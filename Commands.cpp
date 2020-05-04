@@ -911,6 +911,7 @@ void RedirectionCommand::execute() {
 
 ///pipe
 void PipeCommand::execute() {
+
     char cmdline [1024];
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
@@ -930,25 +931,21 @@ void PipeCommand::execute() {
         perror("smash error: fork failed");
         return;
     }
-    else if(pipe_fork == 0){
+    else if(pipe_fork == 0) {
         setpgrp();
 
         int fd[2];
         pipe(fd);
 
-        pid_t pid = fork();
+        pid_t pid_target = fork();
 
-        if (pid == -1) {
+        if(pid_target < 0){
             perror("smash error: fork failed");
             exit(1);
         }
-            //son
-        else if (pid == 0) {
-
-            setpgrp();
-
-            close(0);
-            dup2(fd[0],0);
+        //son - target command
+        else if(pid_target == 0){
+            dup2(fd[0], 0);
             close(fd[0]);
             close(fd[1]);
 
@@ -958,56 +955,43 @@ void PipeCommand::execute() {
             }
             else if(isBuiltInCommand(target->get_cmd_line()) || string(target->get_cmd_line()).find("cp") != std::string::npos){
                 target->execute();
+                exit(1);
             }
             else{
                 char *argv [] = {(char *) "/bin/bash", (char *) "-c", target->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
+                exit(1);
             }
             exit(1);
         }
-            //father
-        else {
+        //father process
+        else{
+            is_stderr += 1;
 
-            char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
+            dup2(fd[1],is_stderr);
+            close(fd[0]);
+            close(fd[1]);
 
-            if (is_stderr) {
-
-                close(1);
-                dup2(fd[1],1);
-                close(fd[0]);
-                close(fd[1]);
-
-                if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
-                    cerr << "smash pid is " << this->s_pid << endl;
-                    exit(1);
-                }
-                else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
-                    source->execute();
-                }
-                else{
-                    execv("/bin/bash", argv);
-                }
-
-            } else {
-                close(2);
-                dup2(fd[1],2);
-                close(fd[0]);
-                close(fd[1]);
-
-                if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
-                    cout << "smash pid is " << this->s_pid << endl;
-                    exit(1);
-                }
-                else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
-                    source->execute();
-                }
-                else{
-                    execv("/bin/bash", argv);
-                }
+            if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
+                cout << "smash pid is " << this->s_pid << endl;
+                exit(1);
             }
-            waitpid(pid, NULL, WUNTRACED);
+            else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
+                source->execute();
+                exit(1);
+            }
+            else{
+                char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
+                execv("/bin/bash", argv);
+                exit(1);
+            }
+
+            waitpid(pid_target, NULL, WUNTRACED);
+            exit(1);
+
         }
-        exit(1);
+
+       exit(1);
     }
     //father
     else{
@@ -1025,6 +1009,7 @@ void PipeCommand::execute() {
             }
         }
     }
+    return;
 
 }
 
