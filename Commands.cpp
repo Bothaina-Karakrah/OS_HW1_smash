@@ -980,7 +980,7 @@ void PipeCommand::execute() {
                 execv("/bin/bash", argv);
             }
 
-            waitpid(pid_target, NULL, WUNTRACED)
+            waitpid(pid_target, NULL, WUNTRACED);
         }
 
        exit(1);
