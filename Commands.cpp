@@ -951,16 +951,13 @@ void PipeCommand::execute() {
 
             if(string(target->get_cmd_line()).find("showpid") != std::string::npos){
                 cout << "smash pid is " << this->s_pid << endl;
-                exit(1);
             }
             else if(isBuiltInCommand(target->get_cmd_line()) || string(target->get_cmd_line()).find("cp") != std::string::npos){
                 target->execute();
-                exit(1);
             }
             else{
                 char *argv [] = {(char *) "/bin/bash", (char *) "-c", target->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
-                exit(1);
             }
             exit(1);
         }
@@ -974,16 +971,13 @@ void PipeCommand::execute() {
 
             if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
                 cout << "smash pid is " << this->s_pid << endl;
-                exit(1);
             }
             else if(isBuiltInCommand(source->get_cmd_line()) || string(source->get_cmd_line()).find("cp") != std::string::npos){
                 source->execute();
-                exit(1);
             }
             else{
                 char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
-                exit(1);
             }
 
             waitpid(pid_target, NULL, WUNTRACED);
