@@ -671,7 +671,6 @@ void ForegroundCommand::execute() {
     }
     smallShell.set_curr_pid(-1) ;
     this->jobs->set_curr_fg_job(jobEntry->get_cmd());
-    this->jobs->removeJobById(id);
     return;
 }
 
