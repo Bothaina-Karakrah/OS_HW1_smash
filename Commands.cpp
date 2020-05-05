@@ -453,6 +453,17 @@ void JobsList::removeJobById(int jobId) {
     }
 }
 
+void JobsList::removeJobBypid(pid_t rem_pid) {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        if (jobs[i].get_cmd()->get_pid() == rem_pid){
+            jobs.erase(jobs.begin() + i);
+            return;
+        }
+    }
+}
+
 JobsList::JobEntry* JobsList::getLastJob(int *lastJobId) {
     removeFinishedJobs();
 
@@ -490,6 +501,18 @@ bool JobsList::is_job_exist(int id) {
     return false;
 }
 
+bool JobsList::pid_exist(pid_t pro_pid) {
+    removeFinishedJobs();
+
+    for (size_t i = 0; i < (this->jobs).size(); ++i) {
+        if (jobs[i].get_cmd()->get_pid() == pro_pid) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void JobsList::killAllJobs() {
 
     removeFinishedJobs();
@@ -515,8 +538,7 @@ void JobsList::print_before_quit() {
 void JobsList::removeFinishedJobs() {
     for(size_t i = 0; i < (this->jobs).size(); ++i) {
 
-        int waitpid_res = waitpid(jobs[i].get_cmd()->get_pid() ,NULL ,WNOHANG);
-        if (waitpid_res >0) {
+        if (waitpid(jobs[i].get_cmd()->get_pid() , nullptr ,WNOHANG) >0) {
             jobs.erase(jobs.begin()+i);
             i--;
         }
@@ -1172,7 +1194,6 @@ void PipeCommand::execute() {
         pid_t pid_source = fork();
         //father process
         if(pid_source == 0){
-
             is_stderr += 1;
             
             dup(is_stderr);
@@ -1232,12 +1253,14 @@ void PipeCommand::execute() {
 
         waitpid(pid_target, nullptr, WUNTRACED);
         waitpid(pid_source, nullptr, WUNTRACED);
+
        exit(1);
     }
     //father
     else{
         this->set_pid(pipe_fork);
         SmallShell &smallShell = smallShell.getInstance();
+
         if (_isBackgroundComamnd(this->get_cmd_line())) {
             smallShell.get_job_list()->addJob(this, false);
         }
@@ -1248,6 +1271,7 @@ void PipeCommand::execute() {
             if (waitpid(pipe_fork, &status, WUNTRACED) < 0 ) {
                 perror("smash error: waitpid failed");
             }
+
         }
     }
     return;
