@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include "Commands.h"
 #include "common.h"
+#include <algorithm>
 
 ///defining global variables
 int stdout_fd_copy;
@@ -823,19 +824,42 @@ void ExternalCommand::execute() {
 
 /////redirection after fix////
 void RedirectionCommand::execute() {
-    string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
+
+    char* tmp_cmd =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
+    strcpy(tmp_cmd,this->get_cmd_line());
+    _removeBackgroundSign(tmp_cmd);
+
+    string str = string(tmp_cmd, strlen(tmp_cmd) + 1);
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
-    int RD_index = string(this->get_cmd_line()).find('>');
+    int RD_index_for_cmd = str.find_first_of('>');
     bool is_append = false;
-    if (this->get_cmd_line()[RD_index + 1] == '>') {
+    if (str[RD_index_for_cmd + 1] == '>') {
         is_append = true;
+    }
+
+
+    ///trim cmdline in str variable
+    str.erase(remove(str.begin(), str.end(), ' '), str.end());
+
+    ///after trim
+    int RD_index = str.find('>');
+
+
+    char* file_name;
+    //prepare file_name to avoid & in its name or >
+    if (!is_append) {
+        file_name = (char*)malloc(sizeof(char) * (str.length() - RD_index));
+        strcpy(file_name, str.substr(RD_index + 1, str.length()).c_str());
+    }
+    else{
+        file_name = (char*)malloc(sizeof(char) * (str.length() - RD_index-1));
+        strcpy(file_name, str.substr(RD_index + 2, str.length()).c_str());
     }
 
     ///check if inner command is built-in, if so it has to run in smash
     if (isBuiltInCommand(args[0])) {
-        _removeBackgroundSign(args[command_len - 1]);
         ///the implement of redirection command:
         //save standard stdout
         int stdout_copy = dup(STDOUT_FILENO);
@@ -857,7 +881,7 @@ void RedirectionCommand::execute() {
         //check if not is_append -> need to override
         if (!is_append) {
             //enable create if does not exist + override if exists
-            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC, 0666);
+            new_fd = open(file_name, O_CREAT | O_WRONLY | O_TRUNC, 0666);
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
@@ -865,7 +889,7 @@ void RedirectionCommand::execute() {
             }
         } else {
             //enable create if not exists + append if exists
-            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY, 0666);
+            new_fd = open(file_name, O_APPEND | O_CREAT | O_WRONLY, 0666);
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
@@ -875,7 +899,7 @@ void RedirectionCommand::execute() {
 
         SmallShell &smallShell = smallShell.getInstance();
         string cmdLine = string(get_cmd_line());
-        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index_for_cmd).c_str(), *prompt_);
 
 
         //redirection is assigned to fd = 1 where the given file is opened
@@ -916,8 +940,6 @@ void RedirectionCommand::execute() {
     if (pid == 0) {
         setpgrp();
 
-        _removeBackgroundSign(args[command_len - 1]);
-
         ///the implement of redirection command:
         //save standard stdout
         int stdout_copy = dup(STDOUT_FILENO);
@@ -939,7 +961,7 @@ void RedirectionCommand::execute() {
         //check if not is_append -> need to override
         if (!is_append) {
             //enable create if does not exist + override if exists
-            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC, 0666);
+            new_fd = open(file_name, O_CREAT | O_WRONLY | O_TRUNC, 0666);
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
@@ -947,7 +969,7 @@ void RedirectionCommand::execute() {
             }
         } else {
             //enable create if not exists + append if exists
-            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY, 0666);
+            new_fd = open(file_name, O_APPEND | O_CREAT | O_WRONLY, 0666);
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
@@ -956,8 +978,8 @@ void RedirectionCommand::execute() {
         }
 
         string cmdLine = string(get_cmd_line());
-        char inner_command[RD_index];
-        strcpy(inner_command, cmdLine.substr(0, RD_index).c_str());
+        char inner_command[RD_index_for_cmd];
+        strcpy(inner_command, cmdLine.substr(0, RD_index_for_cmd).c_str());
 
         char add[8] = "true | ";
         char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
