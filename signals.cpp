@@ -31,7 +31,7 @@ void ctrlZHandler(int sig_num) {
     }
 
     if(temp > 0){
-        if (kill(smallShell.get_curr_pid(), SIGSTOP) != 0) {
+        if (killpg(smallShell.get_curr_pid(), SIGSTOP) != 0) {
             perror("smash error: kill failed");
             return;
         }
@@ -66,7 +66,7 @@ void ctrlCHandler(int sig_num) {
         return;
     }
     if(temp > 0){
-        if (kill(smallShell.get_curr_pid(), SIGKILL) != 0) {
+        if (killpg(smallShell.get_curr_pid(), SIGKILL) != 0) {
             perror("smash error: kill failed");
             return;
         }

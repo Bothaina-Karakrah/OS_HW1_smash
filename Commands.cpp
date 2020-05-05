@@ -582,7 +582,7 @@ void KillCommand::execute() {
 
     JobsList::JobEntry* jobEntry = jobs->getJobById(job_id);
 
-    if (kill(jobEntry->get_cmd()->get_pid(), signum) != 0) {
+    if (killpg(jobEntry->get_cmd()->get_pid(), signum) != 0) {
         perror("smash error: kill failed");
     }
     else{
@@ -648,7 +648,7 @@ void ForegroundCommand::execute() {
     JobsList::JobEntry* jobEntry = jobs->getJobById(id);
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << jobEntry->get_cmd()->get_pid() << endl;
 
-    if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT) < 0){
+    if (killpg(jobEntry->get_cmd()->get_pid(), SIGCONT) < 0){
         perror("smash error: kill failed");
         return;
     }
@@ -1149,7 +1149,6 @@ void PipeCommand::execute() {
         pid_t pid_source = fork();
         //father process
         if(pid_source == 0){
-            setpgrp();
 
             is_stderr += 1;
             
@@ -1184,7 +1183,6 @@ void PipeCommand::execute() {
         }
             //son - target command
         else if(pid_target == 0){
-            setpgrp();
             dup(0);
             dup2(fd[0], 0);
             close(fd[0]);
