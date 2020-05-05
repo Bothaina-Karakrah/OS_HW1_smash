@@ -494,7 +494,7 @@ void JobsList::killAllJobs() {
     removeFinishedJobs();
 
     for (size_t i = 0; i < (this->jobs).size(); ++i) {
-        if (kill(jobs[i].get_cmd()->get_pid(), SIGKILL) != 0) {
+        if (killpg(jobs[i].get_cmd()->get_pid(), SIGKILL) != 0) {
             perror("smash error: kill failed");
         }
     }
