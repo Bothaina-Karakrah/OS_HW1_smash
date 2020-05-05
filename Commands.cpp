@@ -815,8 +815,206 @@ void ExternalCommand::execute() {
 
 
 
-////redirection
+/////redirection after fix////
 void RedirectionCommand::execute() {
+    string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
+    char *args[COMMAND_MAX_ARGS];
+    int command_len = _parseCommandLine(str.c_str(), args);
+
+    int RD_index = string(this->get_cmd_line()).find('>');
+    bool is_append = false;
+    if (this->get_cmd_line()[RD_index + 1] == '>') {
+        is_append = true;
+    }
+
+    ///check if inner command is built-in, if so it has to run in smash
+    if (isBuiltInCommand(args[0])) {
+        _removeBackgroundSign(args[command_len - 1]);
+        ///the implement of redirection command:
+        //save standard stdout
+        int stdout_copy = dup(STDOUT_FILENO);
+        if (stdout_copy == -1) {
+            free_args(args, command_len);
+            perror("smash error: dup failed");
+            return;
+        }
+
+        //close STDOUT_FILENO
+        if (close(STDOUT_FILENO) < 0) {
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        int new_fd;
+
+        //check if not is_append -> need to override
+        if (!is_append) {
+            //enable create if does not exist + override if exists
+            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC, 0666);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        } else {
+            //enable create if not exists + append if exists
+            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY, 0666);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        }
+
+        SmallShell &smallShell = smallShell.getInstance();
+        string cmdLine = string(get_cmd_line());
+        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index).c_str(), *prompt_);
+
+
+        //redirection is assigned to fd = 1 where the given file is opened
+        command->execute();
+
+        if (close(new_fd) < 0) {
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        if (dup2(stdout_copy, STDOUT_FILENO) < 0) {
+            free_args(args, command_len);
+            perror("smash error: dup2 failed");
+            return;
+        }
+
+        free_args(args, command_len);
+        if (close(stdout_copy) < 0) {
+            perror("smash error: close failed");
+            return;
+        }
+
+        return;
+    }
+
+
+    ///if got here then not a built-in command - external or cp
+
+
+    pid_t pid = fork();
+    //if fork failed
+    if (pid < 0) {
+        perror("smash error: fork failed");
+        return;
+    }
+    //son:
+    if (pid == 0) {
+        setpgrp();
+
+        _removeBackgroundSign(args[command_len - 1]);
+
+        ///the implement of redirection command:
+        //save standard stdout
+        int stdout_copy = dup(STDOUT_FILENO);
+        if (stdout_copy == -1) {
+            free_args(args, command_len);
+            perror("smash error: dup failed");
+            return;
+        }
+
+        //close STDOUT_FILENO
+        if (close(STDOUT_FILENO) < 0) {
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        int new_fd;
+
+        //check if not is_append -> need to override
+        if (!is_append) {
+            //enable create if does not exist + override if exists
+            new_fd = open(args[command_len - 1], O_CREAT | O_WRONLY | O_TRUNC, 0666);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        } else {
+            //enable create if not exists + append if exists
+            new_fd = open(args[command_len - 1], O_APPEND | O_CREAT | O_WRONLY, 0666);
+            if (new_fd == -1) {
+                free_args(args, command_len);
+                perror("smash error: open failed");
+                return;
+            }
+        }
+
+
+        string cmdLine = string(get_cmd_line());
+        char inner_command[RD_index];
+        strcpy(inner_command, cmdLine.substr(0, RD_index).c_str());
+
+
+        char *argv[] = {(char *) "/bin/bash", (char *) "-c", inner_command, NULL};
+
+
+        //redirection is assigned to fd = 1 where the given file is opened
+        ///execute external command
+        execv("/bin/bash", argv);
+        //if we here execv failed
+        perror("smash error: execv failed");
+        ////
+
+        if (close(new_fd) < 0) {
+            free_args(args, command_len);
+            perror("smash error: close failed");
+            return;
+        }
+
+        if (dup2(stdout_copy, STDOUT_FILENO) < 0) {
+            free_args(args, command_len);
+            perror("smash error: dup2 failed");
+            return;
+        }
+
+        free_args(args, command_len);
+        if (close(stdout_copy) < 0) {
+            perror("smash error: close failed");
+            return;
+        }
+
+
+        exit(1);
+    }
+        //father
+    else {
+        this->set_pid(pid);
+        SmallShell &smallShell = smallShell.getInstance();
+        if (_isBackgroundComamnd(this->get_cmd_line())) {
+            smallShell.get_job_list()->addJob(this, false);
+        } else {
+            smallShell.set_curr_pid(pid);
+            smallShell.get_job_list()->set_curr_fg_job(this);
+            int status;
+            if (waitpid(pid, &status, WUNTRACED) < 0) {
+                perror("smash error: waitpid failed");
+            }
+        }
+    }
+
+
+    return;
+
+
+}
+
+
+
+
+/*
+
+////redirection
+void RedirectionHelp() {
     string str = string(this->get_cmd_line(), strlen(this->get_cmd_line()) + 1);
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
@@ -907,6 +1105,7 @@ void RedirectionCommand::execute() {
     return;
 
 }
+*/
 
 
 ///pipe
