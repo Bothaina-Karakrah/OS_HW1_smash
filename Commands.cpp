@@ -1106,12 +1106,9 @@ void PipeCommand::execute() {
                 perror("smash error: dup2 failed");
                 exit(1);
             }
-            if(close(fd[0]) < 0){
+            if(close(fd[0]) < 0 || close(fd[1]) < 0){
                 perror("smash error: close failed");
                 exit(1);
-            }
-            if(close(fd[1]) < 0){
-                perror("smash error: close failed");
             }
 
             string source_str = string(source->get_cmd_line(), strlen(source->get_cmd_line()) + 1);
@@ -1145,11 +1142,9 @@ void PipeCommand::execute() {
                 perror("smash error: dup2 failed");
                 exit(1);
             }
-            if(close(fd[0]) < 0){
+            if(close(fd[0]) < 0 || close(fd[1]) < 0){
                 perror("smash error: close failed");
-            }
-            if(close(fd[1]) < 0){
-                perror("smash error: close failed");
+              exit(1);
             }
 
             string target_str = string(target->get_cmd_line(), strlen(target->get_cmd_line()) + 1);
@@ -1169,10 +1164,7 @@ void PipeCommand::execute() {
             }
             exit(1);
         }
-        if(close(fd[0]) < 0){
-            perror("smash error: close failed");
-        }
-        if(close(fd[1]) < 0){
+        if(close(fd[0]) < 0 || close(fd[1]) < 0){
             perror("smash error: close failed");
         }
 
