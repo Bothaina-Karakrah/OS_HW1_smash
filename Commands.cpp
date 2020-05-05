@@ -855,6 +855,7 @@ void RedirectionCommand::execute() {
     _removeBackgroundSign(tmp_cmd);
 
     string str = string(tmp_cmd, strlen(tmp_cmd) + 1);
+    str = _trim(str);
     char *args[COMMAND_MAX_ARGS];
     int command_len = _parseCommandLine(str.c_str(), args);
 
@@ -871,7 +872,7 @@ void RedirectionCommand::execute() {
     ///after trim
     int RD_index = str.find('>');
 
-
+//////////need to fix!!!///////
     char* file_name;
     //prepare file_name to avoid & in its name or >
     if (!is_append) {
@@ -883,23 +884,13 @@ void RedirectionCommand::execute() {
         strcpy(file_name, str.substr(RD_index + 2, str.length()).c_str());
     }
 
-    ///check if inner command is built-in, if so it has to run in smash
-    if (isBuiltInCommand(args[0])) {
-        ///the implement of redirection command:
-        //save standard stdout
-        int stdout_copy = dup(STDOUT_FILENO);
-        if (stdout_copy == -1) {
-            free_args(args, command_len);
-            perror("smash error: dup failed");
-            return;
-        }
+    //cout << "file name:"<<file_name<<"."<<endl;
 
-        //close STDOUT_FILENO
-        if (close(STDOUT_FILENO) < 0) {
-            free_args(args, command_len);
-            perror("smash error: close failed");
-            return;
-        }
+    string command= string(get_cmd_line());
+
+    ///check if inner command is built-in, if so it has to run in smash
+    if (isBuiltInCommand((command.substr(0, RD_index_for_cmd)).c_str()) || isBuiltInCommand(args[0])) {
+        ///the implement of redirection command:
 
         int new_fd;
 
@@ -922,6 +913,22 @@ void RedirectionCommand::execute() {
             }
         }
 
+        //save standard stdout
+        int stdout_copy = dup(STDOUT_FILENO);
+        if (stdout_copy == -1){
+            free_args(args,command_len);
+            perror("smash error: dup failed");
+            return;
+        }
+
+        //change stdout to file
+        if (dup2(new_fd, STDOUT_FILENO)==-1) {
+            free_args(args, command_len);
+            perror("smash error: dup2 failed");
+            return;
+        }
+
+
         SmallShell &smallShell = smallShell.getInstance();
         string cmdLine = string(get_cmd_line());
         Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index_for_cmd).c_str(), *prompt_);
@@ -930,22 +937,14 @@ void RedirectionCommand::execute() {
         //redirection is assigned to fd = 1 where the given file is opened
         command->execute();
 
-        if (close(new_fd) < 0) {
-            free_args(args, command_len);
-            perror("smash error: close failed");
-            return;
-        }
-
-        if (dup2(stdout_copy, STDOUT_FILENO) < 0) {
+        if(dup2(stdout_copy, STDOUT_FILENO)==-1){
             free_args(args, command_len);
             perror("smash error: dup2 failed");
             return;
         }
-
         free_args(args, command_len);
-        if (close(stdout_copy) < 0) {
+        if (close(new_fd) == -1){
             perror("smash error: close failed");
-            return;
         }
 
         return;
@@ -966,20 +965,6 @@ void RedirectionCommand::execute() {
         setpgrp();
 
         ///the implement of redirection command:
-        //save standard stdout
-        int stdout_copy = dup(STDOUT_FILENO);
-        if (stdout_copy == -1) {
-            free_args(args, command_len);
-            perror("smash error: dup failed");
-            return;
-        }
-
-        //close STDOUT_FILENO
-        if (close(STDOUT_FILENO) < 0) {
-            free_args(args, command_len);
-            perror("smash error: close failed");
-            return;
-        }
 
         int new_fd;
 
@@ -1001,6 +986,23 @@ void RedirectionCommand::execute() {
                 return;
             }
         }
+
+
+        //save standard stdout
+        int stdout_copy = dup(STDOUT_FILENO);
+        if (stdout_copy == -1) {
+            free_args(args, command_len);
+            perror("smash error: dup failed");
+            return;
+        }
+
+        //change stdout to file
+        if (dup2(new_fd,STDOUT_FILENO)==-1) {
+            free_args(args, command_len);
+            perror("smash error: dup2 failed");
+            return;
+        }
+
 
         string cmdLine = string(get_cmd_line());
         char inner_command[RD_index_for_cmd];
@@ -1022,24 +1024,17 @@ void RedirectionCommand::execute() {
         perror("smash error: execv failed");
         ////
 
-        if (close(new_fd) < 0) {
-            free_args(args, command_len);
-            perror("smash error: close failed");
-            return;
-        }
 
-        if (dup2(stdout_copy, STDOUT_FILENO) < 0) {
+        //return FDT like before
+        if(dup2(stdout_copy, STDOUT_FILENO)==-1){
             free_args(args, command_len);
             perror("smash error: dup2 failed");
             return;
         }
-
         free_args(args, command_len);
-        if (close(stdout_copy) < 0) {
+        if (close(new_fd) == -1){
             perror("smash error: close failed");
-            return;
         }
-
 
         exit(1);
     }
@@ -1064,6 +1059,9 @@ void RedirectionCommand::execute() {
 
 
 }
+
+
+
 
 
 ///pipe
