@@ -70,6 +70,9 @@ void ctrlCHandler(int sig_num) {
             perror("smash error: kill failed");
             return;
         }
+        if(smallShell.get_job_list()->pid_exist(temp)){
+            smallShell.get_job_list()->removeJobBypid(temp);
+        }
         smallShell.set_curr_pid(-1);
         smallShell.get_job_list()->set_curr_fg_job(nullptr);
         cout << "smash: process " << temp << " was killed" << endl;
