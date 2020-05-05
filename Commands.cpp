@@ -1093,14 +1093,26 @@ void PipeCommand::execute() {
         pipe(fd);
 
         pid_t pid_source = fork();
+
+        if(pid_source < 0){
+            perror("smash error: fork failed");
+            exit(1);
+        }
         //father process
         if(pid_source == 0){
             is_stderr += 1;
 
-            dup(is_stderr);
-            dup2(fd[1],is_stderr);
-            close(fd[0]);
-            close(fd[1]);
+            if(dup2(fd[1],is_stderr) < 0){
+                perror("smash error: dup2 failed");
+                exit(1);
+            }
+            if(close(fd[0]) < 0){
+                perror("smash error: close failed");
+                exit(1);
+            }
+            if(close(fd[1]) < 0){
+                perror("smash error: close failed");
+            }
 
             string source_str = string(source->get_cmd_line(), strlen(source->get_cmd_line()) + 1);
             char *source_args[COMMAND_MAX_ARGS];
@@ -1115,6 +1127,7 @@ void PipeCommand::execute() {
             else{
                 char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
+                perror("smash error: execv failed");
             }
             exit(1);
 
@@ -1128,10 +1141,16 @@ void PipeCommand::execute() {
         }
             //son - target command
         else if(pid_target == 0){
-            dup(0);
-            dup2(fd[0], 0);
-            close(fd[0]);
-            close(fd[1]);
+            if(dup2(fd[0], 0) < 0){
+                perror("smash error: dup2 failed");
+                exit(1);
+            }
+            if(close(fd[0]) < 0){
+                perror("smash error: close failed");
+            }
+            if(close(fd[1]) < 0){
+                perror("smash error: close failed");
+            }
 
             string target_str = string(target->get_cmd_line(), strlen(target->get_cmd_line()) + 1);
             char *target_args[COMMAND_MAX_ARGS];
@@ -1146,14 +1165,20 @@ void PipeCommand::execute() {
             else{
                 char *argv [] = {(char *) "/bin/bash", (char *) "-c", target->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
+                perror("smash error: execv failed");
             }
             exit(1);
         }
-        close(fd[0]);
-        close(fd[1]);
+        if(close(fd[0]) < 0){
+            perror("smash error: close failed");
+        }
+        if(close(fd[1]) < 0){
+            perror("smash error: close failed");
+        }
 
-        waitpid(pid_target, nullptr, WUNTRACED);
-        waitpid(pid_source, nullptr, WUNTRACED);
+        if(waitpid(pid_target, nullptr, WUNTRACED) < 0 || waitpid(pid_source, nullptr, WUNTRACED) < 0){
+            perror("smash error: waitpid failed");
+        }
 
         exit(1);
     }
