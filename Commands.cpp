@@ -775,7 +775,13 @@ void ExternalCommand::execute() {
     char* cmdline =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
-    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline, NULL};
+//adding "true | " at the beginning of an external command for not asking for permission
+    char add[8] = "true | ";
+    char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
+    strcpy(cmd_line_add, add);
+    strcat(cmd_line_add,cmdline);
+
+    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmd_line_add,NULL};
 
     pid_t pid = fork();
     //if fork failed
@@ -949,13 +955,17 @@ void RedirectionCommand::execute() {
             }
         }
 
-
         string cmdLine = string(get_cmd_line());
         char inner_command[RD_index];
         strcpy(inner_command, cmdLine.substr(0, RD_index).c_str());
 
+        char add[8] = "true | ";
+        char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
+        strcpy(cmd_line_add, add);
+        strcat(cmd_line_add,inner_command);
 
-        char *argv[] = {(char *) "/bin/bash", (char *) "-c", inner_command, NULL};
+        char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmd_line_add,NULL};
+
 
 
         //redirection is assigned to fd = 1 where the given file is opened
