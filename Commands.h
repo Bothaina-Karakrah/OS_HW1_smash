@@ -170,7 +170,9 @@ public:
     // TODO: Add extra methods or modify exisitng ones as needed
 
     bool is_job_exist(int id);
+    bool pid_exist(pid_t pro_pid);
     void print_before_quit();
+    void removeJobBypid(pid_t rem_pid);
 
     void delete_jobs_vector() {
         jobs.clear();
