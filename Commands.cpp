@@ -760,7 +760,7 @@ void BackgroundCommand::execute() {
     }
     cout << jobEntry->get_cmd()->get_cmd_line() << " : " << jobEntry->get_cmd()->get_pid() << endl;
 
-    if (kill(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
+    if (killpg(jobEntry->get_cmd()->get_pid(), SIGCONT)!=0){
         perror("smash error: kill failed");
         return;
     }
