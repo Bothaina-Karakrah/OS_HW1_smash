@@ -545,14 +545,14 @@ void KillCommand::execute() {
 
     //check arguments_number
     if (command_len != 3){
-        cout << "smash error: kill: invalid arguments" <<endl;
+        cerr << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
     //check arguments_format
     /////TODO: add remove & sign before convert to integer
     if (!is_number(args[1]) || !is_number(args[2])){
-        cout << "smash error: kill: invalid arguments" <<endl;
+        cerr << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
@@ -562,7 +562,7 @@ void KillCommand::execute() {
     int signum = atoi((args[1]));
     signum = -1* signum;
     if (signum < 1 || signum > 31){
-        cout << "smash error: kill: invalid arguments" <<endl;
+        cerr << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
@@ -575,7 +575,7 @@ void KillCommand::execute() {
 
     //check if job-id exists
     if (!(jobs->is_job_exist(job_id))){
-        cout << "smash error: kill: job-id " << job_id<< " does not exist" << endl;
+        cerr << "smash error: kill: job-id " << job_id<< " does not exist" << endl;
         free_args(args, command_len);
         return;
     }
@@ -603,7 +603,7 @@ void ForegroundCommand::execute() {
 
     //check arguments_number
     if (command_len > 2) {
-        cout << "smash error: fg: invalid arguments" << endl;
+        cerr << "smash error: fg: invalid arguments" << endl;
         free_args(args,command_len);
         return;
     }
@@ -615,7 +615,7 @@ void ForegroundCommand::execute() {
         //check format
         /////TODO: remove & from args[1] before converting
         if (!(is_number(args[1]))) {
-            perror("smash error: fg: invalid arguments");
+            cerr << "smash error: fg: invalid arguments" << endl;
             free_args(args,command_len);
             return;
         }
@@ -625,7 +625,7 @@ void ForegroundCommand::execute() {
 
         //check if job-id does not exist
         if (!(jobs->is_job_exist(id))){
-            cout << "smash error: fg: job-id " << id << " does not exist" << endl;
+            cerr << "smash error: fg: job-id " << id << " does not exist" << endl;
             free_args(args,command_len);
             return;
         }
@@ -634,7 +634,7 @@ void ForegroundCommand::execute() {
     else if (command_len == 1){
         if (jobs->isEmpty()){
             free_args(args,command_len);
-            cout << "smash error: fg: jobs list is empty" << endl;
+            cerr << "smash error: fg: jobs list is empty" << endl;
             return;
         }
         else{
@@ -684,7 +684,7 @@ void BackgroundCommand::execute() {
     int command_len = _parseCommandLine(str.c_str(), args);
 
     if (command_len > 2) {
-        perror("smash error: bg: invalid arguments");
+        cerr<<"smash error: bg: invalid arguments"<<endl;
         free_args(args,command_len);
         return;
     }
@@ -696,7 +696,7 @@ void BackgroundCommand::execute() {
         //check format
         /////TODO: remove & before convert to integr
         if (!(is_number(args[1]))) {
-            perror("smash error: bg: invalid arguments");
+            cerr<<"smash error: bg: invalid arguments"<<endl;
             free_args(args,command_len);
             return;
         }
@@ -705,13 +705,13 @@ void BackgroundCommand::execute() {
 
         //check if job-id does not exist
         if (!(jobs->is_job_exist(id))){
-            cout << "smash error: bg: job-id " << id << " does not exist" << endl;
+            cerr << "smash error: bg: job-id " << id << " does not exist" << endl;
             free_args(args,command_len);
             return;
         }
         //exists but not stopped
         if (jobs->getJobById(id)->get_cmd()->get_state() != Stopped){
-            cout << "smash error: bg: job-id " << id << " is already running in the background" << endl;
+            cerr << "smash error: bg: job-id " << id << " is already running in the background" << endl;
             free_args(args,command_len);
             return;
         }
@@ -721,7 +721,7 @@ void BackgroundCommand::execute() {
         JobsList::JobEntry *jobEntry = jobs->getLastStoppedJob(&id);
         //check if list empty || no stopped job
         if (jobEntry == NULL && id <= 0) {
-            perror("smash error: bg: there is no stopped jobs to resume");
+            cerr<<"smash error: bg: there is no stopped jobs to resume"<<endl;
             free_args(args,command_len);
             return;
         }
