@@ -795,13 +795,8 @@ void ExternalCommand::execute() {
     char* cmdline =(char*)malloc(sizeof(char) * COMMAND_ARGS_MAX_LENGTH);
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
-//adding "true | " at the beginning of an external command for not asking for permission
-    char add[8] = "true | ";
-    char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
-    strcpy(cmd_line_add, add);
-    strcat(cmd_line_add,cmdline);
 
-    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmd_line_add,NULL};
+    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline.c_str(),NULL};
 
     pid_t pid = fork();
     //if fork failed
@@ -1166,11 +1161,7 @@ void PipeCommand::execute() {
                 source->execute();
             }
             else{
-              char add[8] = "true | ";
-    char source_line_add[COMMAND_ARGS_MAX_LENGTH+8];
-    strcpy(source_line_add, add);
-    strcat(source_line_add,source->get_cmd_line());
-                char *argv [] = {(char *) "/bin/bash", (char *) "-c", source_line_add, NULL};
+                char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
                 perror("smash error: execv failed");
             }
@@ -1206,11 +1197,7 @@ void PipeCommand::execute() {
                 target->execute();
             }
             else{
-              char add[8] = "true | ";
-    char target_line_add[COMMAND_ARGS_MAX_LENGTH+8];
-    strcpy(target_line_add, add);
-    strcat(target_line_add,this->get_cmd_line());
-                char *argv [] = {(char *) "/bin/bash", (char *) "-c", target_line_add, NULL};
+                char *argv [] = {(char *) "/bin/bash", (char *) "-c", target->get_cmd_line(), NULL};
                 execv("/bin/bash", argv);
                 perror("smash error: execv failed");
             }
