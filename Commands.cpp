@@ -882,10 +882,10 @@ void RedirectionCommand::execute() {
     //cout << "file name:"<<file_name<<"."<<endl;
 
     free_args (args_after_sign, len_after_sign);
-    string command= string(get_cmd_line());
+   // string command= string(get_cmd_line());
 
     ///check if inner command is built-in, if so it has to run in smash
-    if (isBuiltInCommand((command.substr(0, RD_index_for_cmd)).c_str()) || isBuiltInCommand(args[0])) {
+    if (isBuiltInCommand((str.substr(0, RD_index_for_cmd)).c_str()) || isBuiltInCommand(args[0])) {
         ///the implement of redirection command:
 
         int new_fd;
@@ -926,8 +926,8 @@ void RedirectionCommand::execute() {
 
 
         SmallShell &smallShell = smallShell.getInstance();
-        string cmdLine = string(get_cmd_line());
-        Command *command = smallShell.CreateCommand(cmdLine.substr(0, RD_index_for_cmd).c_str(), *prompt_);
+        //string cmdLine = string(get_cmd_line());
+        Command *command = smallShell.CreateCommand(str.substr(0, RD_index_for_cmd).c_str(), *prompt_);
 
 
         //redirection is assigned to fd = 1 where the given file is opened
@@ -948,7 +948,11 @@ void RedirectionCommand::execute() {
 
 
     ///if got here then not a built-in command - external or cp
-
+//check if cp command
+    bool is_cp=false;
+    if (strcmp(str.substr(0,RD_index_for_cmd).c_str(),"cp")==0 || strcmp(args[0],"cp")==0){
+        is_cp=true;
+    }
 
     pid_t pid = fork();
     //if fork failed
@@ -999,26 +1003,69 @@ void RedirectionCommand::execute() {
             exit(1);
         }
 
-
-        string cmdLine = string(get_cmd_line());
+        //  string cmdLine = string(get_cmd_line());
         char inner_command[RD_index_for_cmd];
-        strcpy(inner_command, cmdLine.substr(0, RD_index_for_cmd).c_str());
+        strcpy(inner_command, str.substr(0, RD_index_for_cmd).c_str());
 
-        char add[8] = "true | ";
-        char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
-        strcpy(cmd_line_add, add);
-        strcat(cmd_line_add,inner_command);
+        if (is_cp){
+            CopyCommand * cp_command = new CopyCommand(inner_command);
+            //implement cp command
 
-        char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmd_line_add,NULL};
+///from copyexecute
+            string str_cp = string(cp_command->get_cmd_line(), strlen(cp_command->get_cmd_line()+ 1));
+            str_cp = _trim(str_cp);
+            char *args_cp[COMMAND_MAX_ARGS];
+            int command_len_cp = _parseCommandLine(str_cp.c_str(), args_cp);
+
+            if(command_len_cp < 3){
+                exit(1);
+            }
+
+            _removeBackgroundSign(args_cp[1]);
+            string temp = string(args_cp[1]);
+            string source = _trim(temp);
+
+            _removeBackgroundSign(args_cp[2]);
+            string temp2 = string(args_cp[2]);
+            string target = _trim(temp2);
+
+            ///check if same path - meaning same file///
+            char buf_s[PATH_MAX];
+            char *res_s = realpath (source.c_str(),buf_s);
+
+            char buf_t[PATH_MAX];
+            char *res_t = realpath (target.c_str(),buf_t);
+
+            if (res_s && res_t) {
+                if (strcmp(buf_s, buf_t) == 0) {
+                    cout << "smash: " << source.c_str() << " was copied to " << target.c_str() << endl;
+                }else{
+                    //if got here then not same file -> implement cp
+                    cp_command->copy_aux(source,target);
+                }
+            }
+            ///end from aux///
+        }
+
+        else{//if got here then external command
+            char add[8] = "true | ";
+            char cmd_line_add[COMMAND_ARGS_MAX_LENGTH+8];
+            strcpy(cmd_line_add, add);
+            strcat(cmd_line_add,inner_command);
+
+            char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmd_line_add,NULL};
 
 
 
-        //redirection is assigned to fd = 1 where the given file is opened
-        ///execute external command
-        execv("/bin/bash", argv);
-        //if we here execv failed
-        perror("smash error: execv failed");
-        ////
+            //redirection is assigned to fd = 1 where the given file is opened
+            ///execute external command
+            execv("/bin/bash", argv);
+            //if we here execv failed
+            perror("smash error: execv failed");
+            ////
+        }
+
+
 
 
         //return FDT like before
