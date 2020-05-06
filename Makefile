@@ -8,12 +8,12 @@ HDRS := Commands.h signals.h
 SMASH_BIN := smash
 
 $(SMASH_BIN):
-$(COMPILER) $(COMPILER_FLAGS) $^ $(SRCS) -o $@
+	$(COMPILER) $(COMPILER_FLAGS) $^ $(SRCS) -o $@
 
 zip: $(SRCS) $(HDRS)
-zip $(SUBMITTERS).zip $^ submitters.txt Makefile
+	zip $(SUBMITTERS).zip $^ submitters.txt Makefile
 
 clean:
-rm *.o
-rm -rf $(SMASH_BIN)
-rm -rf $(SUBMITTERS).zip
+	rm *.o
+	rm -rf $(SMASH_BIN)
+	rm -rf $(SUBMITTERS).zip
