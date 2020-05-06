@@ -868,26 +868,25 @@ void RedirectionCommand::execute() {
     }
 
 
-    ///trim cmdline in str variable
-    str.erase(remove(str.begin(), str.end(), ' '), str.end());
-
-    ///after trim
-    int RD_index = str.find('>');
-
-//////////need to fix!!!///////
-    char* file_name;
-    //prepare file_name to avoid & in its name or >
-    if (!is_append) {
-        file_name = (char*)malloc(sizeof(char) * (str.length() - RD_index));
-        strcpy(file_name, str.substr(RD_index + 1, str.length()).c_str());
+    //prepare file_name
+    char* after_sign;
+    if (!is_append){
+        after_sign = (char*)malloc(sizeof(char) * (str.length()-RD_index_for_cmd));
+        strcpy(after_sign,str.substr(RD_index_for_cmd+1,str.length()).c_str());
+    }else{
+        after_sign = (char*)malloc(sizeof(char) * (str.length()-RD_index_for_cmd-1));
+        strcpy(after_sign,str.substr(RD_index_for_cmd+2,str.length()).c_str());
     }
-    else{
-        file_name = (char*)malloc(sizeof(char) * (str.length() - RD_index-1));
-        strcpy(file_name, str.substr(RD_index + 2, str.length()).c_str());
-    }
+
+    char* args_after_sign[COMMAND_MAX_ARGS];
+    int len_after_sign = _parseCommandLine(after_sign,args_after_sign);
+
+    char file_name[strlen(args_after_sign[0])];
+    strcpy(file_name, args_after_sign[0]);
 
     //cout << "file name:"<<file_name<<"."<<endl;
 
+    free_args (args_after_sign, len_after_sign);
     string command= string(get_cmd_line());
 
     ///check if inner command is built-in, if so it has to run in smash
@@ -977,7 +976,7 @@ void RedirectionCommand::execute() {
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
-                return;
+                exit(1);
             }
         } else {
             //enable create if not exists + append if exists
@@ -985,7 +984,7 @@ void RedirectionCommand::execute() {
             if (new_fd == -1) {
                 free_args(args, command_len);
                 perror("smash error: open failed");
-                return;
+                exit(1);
             }
         }
 
@@ -995,14 +994,14 @@ void RedirectionCommand::execute() {
         if (stdout_copy == -1) {
             free_args(args, command_len);
             perror("smash error: dup failed");
-            return;
+            exit(1);
         }
 
         //change stdout to file
         if (dup2(new_fd,STDOUT_FILENO)==-1) {
             free_args(args, command_len);
             perror("smash error: dup2 failed");
-            return;
+            exit(1);
         }
 
 
@@ -1031,7 +1030,7 @@ void RedirectionCommand::execute() {
         if(dup2(stdout_copy, STDOUT_FILENO)==-1){
             free_args(args, command_len);
             perror("smash error: dup2 failed");
-            return;
+            exit(1);
         }
         free_args(args, command_len);
         if (close(new_fd) == -1){
