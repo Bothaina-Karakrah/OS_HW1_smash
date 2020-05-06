@@ -1157,7 +1157,7 @@ void PipeCommand::execute() {
 
             string source_str = string(source->get_cmd_line(), strlen(source->get_cmd_line()) + 1);
             char *source_args[COMMAND_MAX_ARGS];
-            int source_len = _parseCommandLine(source_str.c_str(), source_args);
+            _parseCommandLine(source_str.c_str(), source_args);
 
             if(string(source->get_cmd_line()).find("showpid") != std::string::npos){
                 cout << "smash pid is " << this->s_pid << endl;
@@ -1193,7 +1193,7 @@ void PipeCommand::execute() {
 
             string target_str = string(target->get_cmd_line(), strlen(target->get_cmd_line()) + 1);
             char *target_args[COMMAND_MAX_ARGS];
-            int target_len = _parseCommandLine(target_str.c_str(), target_args);
+           _parseCommandLine(target_str.c_str(), target_args);
 
             if(string(target->get_cmd_line()).find("showpid") != std::string::npos){
                 cout << "smash pid is " << this->s_pid << endl;
