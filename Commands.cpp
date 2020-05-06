@@ -1166,7 +1166,11 @@ void PipeCommand::execute() {
                 source->execute();
             }
             else{
-                char *argv [] = {(char *) "/bin/bash", (char *) "-c", source->get_cmd_line(), NULL};
+              char add[8] = "true | ";
+    char source_line_add[COMMAND_ARGS_MAX_LENGTH+8];
+    strcpy(source_line_add, add);
+    strcat(source_line_add,source->get_cmd_line());
+                char *argv [] = {(char *) "/bin/bash", (char *) "-c", source_line_add, NULL};
                 execv("/bin/bash", argv);
                 perror("smash error: execv failed");
             }
@@ -1202,7 +1206,11 @@ void PipeCommand::execute() {
                 target->execute();
             }
             else{
-                char *argv [] = {(char *) "/bin/bash", (char *) "-c", target->get_cmd_line(), NULL};
+              char add[8] = "true | ";
+    char target_line_add[COMMAND_ARGS_MAX_LENGTH+8];
+    strcpy(target_line_add, add);
+    strcat(target_line_add,this->get_cmd_line());
+                char *argv [] = {(char *) "/bin/bash", (char *) "-c", target_line_add, NULL};
                 execv("/bin/bash", argv);
                 perror("smash error: execv failed");
             }
