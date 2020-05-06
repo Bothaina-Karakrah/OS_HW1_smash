@@ -579,21 +579,23 @@ void KillCommand::execute() {
         free_args(args, command_len);
         return;
     }
+    if (_isBackgroundComamnd(this->get_cmd_line()) == 1) {
+        _removeBackgroundSign(args[2]);
+    }
 
     //got numbers
     //check validity of signum
     int signum = atoi((args[1]));
     signum = -1* signum;
-    if (signum < 1 || signum > 31){
+
+    if (signum <= 0){
         cerr << "smash error: kill: invalid arguments" <<endl;
         free_args(args, command_len);
         return;
     }
 
 
-    if (_isBackgroundComamnd(this->get_cmd_line()) == 1) {
-        _removeBackgroundSign(args[2]);
-    }
+
     int job_id = atoi(args[2]);
 
     //check if job-id exists
@@ -1100,12 +1102,13 @@ void PipeCommand::execute() {
         }
         //father process
         if(pid_source == 0){
-            is_stderr += 1;
+            int stdin_file = is_stderr ? 2:1;
 
-            if(dup2(fd[1],is_stderr) < 0){
+            if(dup2(fd[1], stdin_file)<0) {
                 perror("smash error: dup2 failed");
                 exit(1);
             }
+
             if(close(fd[0]) < 0 || close(fd[1]) < 0){
                 perror("smash error: close failed");
                 exit(1);
