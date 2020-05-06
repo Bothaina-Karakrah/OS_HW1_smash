@@ -2,25 +2,14 @@
 #include <signal.h>
 #include "signals.h"
 #include "Commands.h"
-#include "common.h"
+
 
 using namespace std;
 
 void ctrlZHandler(int sig_num) {
 
 
-    ///fix stdout to the standard one.
-    if (from_redirect == true) {
-        from_redirect = false;
-        if (close(new_fd_copy) < 0) {
-            perror("smash error: close failed");
-        }
-        if (dup2(stdout_fd_copy, STDOUT_FILENO) == -1) {
-            perror("smash error: dup2 failed");
-        }
-    }
-
-    // TODO: Add your implementation
+   // TODO: Add your implementation
     cout << "smash: got ctrl-Z" << endl;
     SmallShell &smallShell = smallShell.getInstance();
     int temp = smallShell.get_curr_pid();
@@ -45,19 +34,7 @@ void ctrlZHandler(int sig_num) {
 
 void ctrlCHandler(int sig_num) {
 
-    ///fix stdout to the standard one.
-    if (from_redirect == true) {
-        from_redirect = false;
-        if (close(new_fd_copy) < 0) {
-            perror("smash error: close failed");
-        }
-        if (dup2(stdout_fd_copy, STDOUT_FILENO) == -1) {
-            perror("smash error: dup2 failed");
-        }
-    }
-
-
-    // TODO: Add your implementation
+     // TODO: Add your implementation
     cout << "smash: got ctrl-C" << endl;
     SmallShell &smallShell = smallShell.getInstance();
     int temp = smallShell.get_curr_pid();

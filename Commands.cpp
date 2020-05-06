@@ -7,13 +7,8 @@
 #include <iomanip>
 #include <fcntl.h>
 #include "Commands.h"
-#include "common.h"
 #include <algorithm>
 
-///defining global variables
-int stdout_fd_copy;
-bool from_redirect=false;
-int new_fd_copy;
 
 using namespace std;
 
