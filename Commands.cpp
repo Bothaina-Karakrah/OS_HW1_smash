@@ -796,7 +796,7 @@ void ExternalCommand::execute() {
     strcpy(cmdline,this->get_cmd_line());
     _removeBackgroundSign(cmdline);
 
-    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline.c_str(),NULL};
+    char *argv [] = {(char *) "/bin/bash", (char *) "-c", cmdline,NULL};
 
     pid_t pid = fork();
     //if fork failed
