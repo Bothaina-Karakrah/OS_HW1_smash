@@ -942,6 +942,8 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
 			  unsigned mask, struct statx __user *buffer);
 
 asmlinkage long sys_hello(void);
+asmlinkage  long get_vruntime(void);
+asmlinkage long increment_vruntime(long delta);
 
 
 #endif
