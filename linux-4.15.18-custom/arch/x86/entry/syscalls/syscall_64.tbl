@@ -340,6 +340,8 @@
 331	common	pkey_free		sys_pkey_free
 332	common	statx			sys_statx
 333	common	hello			sys_hello
+334 common  get_vruntime    sys_get_vruntime
+335 common  increment_vruntime  sys_increment_vruntime
 
 #
 # x32-specific system call numbers start at 512 to avoid cache impact
